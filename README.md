@@ -89,13 +89,15 @@ dsh plugin --profile web remove dsh-group-status
 
 本插件自己画三档会话状态：
 
-| 符号 | 含义 | 颜色来源 |
-|---|---|---|
-| 黄点 | 组内有待审批 / 计划待审 / 等待回答 | `StateDot` `warning`，与会话行一致 |
-| 转圈 | 组内有进行中（含运行中的子智能体） | `StateDot` `ongoing` |
-| 绿点 | 组内有已完成但未读的会话 | `StateDot` `done`，与会话行一致 |
+| 图标 | 叫法 | 含义 | 颜色来源 |
+|---|---|---|---|
+| <img src="docs/media/glyph-pending.svg" width="10" height="10" alt=""/> | 黄点 | 组内有待审批 / 计划待审 / 等待回答 | `StateDot` `warning`，与会话行一致 |
+| <img src="docs/media/glyph-running.svg" width="14" height="14" alt=""/> | 转圈 | 组内有进行中（含运行中的子智能体） | `StateDot` `ongoing` |
+| <img src="docs/media/glyph-completed.svg" width="10" height="10" alt=""/> | 绿点 | 组内有已完成但未读的会话 | `StateDot` `done`，与会话行一致 |
 
-外部状态源（定时任务、等待评审等）交自己的图标与色档，本插件不决定它们的图标形状、颜色档位与是否闪烁。
+图标是复刻件：形状按 `StateDot` 的几何（实心点是 10px 槽位里的 6px 圆，转圈是 14px 的环加一弧约 72°），颜色取自上面两张实机截图的像素，与截图同为暗色主题，由 [scripts/make-badge-glyphs.mjs](scripts/make-badge-glyphs.mjs) 生成。「转圈」在 UI 里持续旋转（1.5s 一圈），这里只能是一帧。真实界面上的颜色以 UI 为准，本包不另存一份色值表。
+
+外部状态源（定时任务、等待评审等）交自己的图标与色档，本插件不决定它们的图标形状、颜色档位与是否闪烁，所以那两枚图标不在这里复刻，要看它们各自提供方的说明。
 
 - **计数** = 待审批 + 进行中（含运行中的子智能体）+ 已完成 + 各外部来源自己报的条数。计数大于 99 显示 `99+`；小于 `countThreshold` 时省略数字，只画点。
 - **排布**：待审批、进行中、外部来源、已完成。外部来源之间的次序由各自的 `order` 决定。悬停明细与徽标点行同一套次序，逐档一行，例如 `1 等待回答 · 1 进行中`。等待评审那一行由提供方带上 PR 号与剩余时长。
@@ -185,7 +187,7 @@ ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
 pnpm install
 pnpm build        # tsc 类型检查 + tsdown 打包 → lib/
 pnpm watch        # 监听 src/ 自动重建（仍需重启 dsh web）
-pnpm test         # test:node（node --test，49 用例）+ test:spec（vitest + jsdom，183 用例）
+pnpm test         # test:node（node --test，50 用例）+ test:spec（vitest + jsdom，183 用例）
 pnpm test:spec    # 只跑 spec 套件
 pnpm check-upstream   # 上游代次跟踪（加 --latest 查 npm 已发布的最高版）
 ```

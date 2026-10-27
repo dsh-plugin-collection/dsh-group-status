@@ -24,7 +24,9 @@
  *  5. **引用可达**：README 里的相对链接与图片必须真实存在，图片还必须落在
  *     `package.json` 的 `files` 白名单里（发布 tarball 曾不含 `docs/`，README 的截图在
  *     包内视角是断链）。
- *  6. **发布说明的兜底源还在**：`.github/extract-notes.mjs` 在拿不到上一条 Release 时
+ *  6. **徽标图标可复现**：README 用的 `docs/media/glyph-*.svg` 必须由
+ *     `scripts/make-badge-glyphs.mjs` 逐字节产出，防止有人手改 SVG 让图标与 `StateDot` 脱钩。
+ *  7. **发布说明的兜底源还在**：`.github/extract-notes.mjs` 在拿不到上一条 Release 时
  *     读 README 的特性小节，那节标题与要点少了就是发布说明静默变空。
  *
  * Vitest 跑不起来时（缺依赖等）只打 diagnostic、跳过第 3 条的 Vitest 部分，**不假装通过**。
@@ -32,7 +34,7 @@
  * @module tests/readme-facts
  */
 import assert from 'node:assert/strict'
-import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -297,6 +299,31 @@ test('README 的相对引用存在，图片落在发布白名单内', () => {
         assert.ok(coveredByFiles(ref), `${ref} 是 README 用到的图片，但 package.json 的 files 没覆盖它：发布 tarball 里会断链`)
       }
     }
+  }
+})
+
+test('README 用的徽标图标能由脚本逐字节复现', () => {
+  const glyphs = ['glyph-pending.svg', 'glyph-running.svg', 'glyph-completed.svg']
+  const path = (g) => join(rootDir, 'docs', 'media', g)
+  const both = read(ZH) + read(EN)
+
+  for (const g of glyphs) {
+    assert.ok(both.includes(`docs/media/${g}`), `README 没用到 ${g}：脚本产物成了没人引用的文件，或引用改名了`)
+  }
+
+  const before = new Map(glyphs.map((g) => [g, readFileSync(path(g))]))
+  const { NODE_TEST_CONTEXT, ...env } = process.env
+  const rebuilt = spawnSync(process.execPath, ['scripts/make-badge-glyphs.mjs'], { cwd: rootDir, encoding: 'utf8', env })
+  assert.equal(rebuilt.status, 0, `脚本跑不起来：${rebuilt.stderr?.slice(0, 200)}`)
+
+  for (const g of glyphs) {
+    const after = readFileSync(path(g))
+    // 不一致也要把仓库还原：`npm test` 不许留下改动（CI 明文要求）。
+    if (!after.equals(before.get(g))) writeFileSync(path(g), before.get(g))
+    assert.ok(
+      after.equals(before.get(g)),
+      `docs/media/${g} 与脚本产物不一致：改几何或换色值请重跑 node scripts/make-badge-glyphs.mjs 再提交产物`,
+    )
   }
 })
 
