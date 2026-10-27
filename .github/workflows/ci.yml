@@ -284,10 +284,13 @@ jobs:
           # `latestChangedDtsFile` 之类的字段取决于上一次构建动过哪些文件，同一份源码在"刚 clone
           # 完"和"本地反复构建过"两种状态下会给出不同值 —— 那是缓存状态差异，与产物可复现性无关，
           # 拿它判红只会让人去查一个不存在的绝对路径问题。真正要比的是编译输出。
-          if diff -rq --exclude='*.tsbuildinfo' "$PWD/lib" "$copy/lib" >/dev/null; then
+          # 按文件名删，不用 diff --exclude：runner 镜像里的 diff 是 busybox，它不认这个选项
+          # （2026-10-27 实测直接 "unrecognized option" 判红，比对根本没发生）。
+          find "$PWD/lib" "$copy/lib" -name '*.tsbuildinfo' -delete
+          if diff -rq "$PWD/lib" "$copy/lib" >/dev/null; then
             echo "✔ 同一 commit 在两个不同目录构建，lib/ 逐字节一致"
           else
             echo "::error title=产物不可复现::换个目录构建就得到不同的 lib/ —— CSS 前缀大概又用上了绝对路径。"
-            diff -rq --exclude='*.tsbuildinfo' "$PWD/lib" "$copy/lib" | head -5
+            diff -rq "$PWD/lib" "$copy/lib" | head -5
             exit 1
           fi
