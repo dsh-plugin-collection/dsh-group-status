@@ -2,177 +2,135 @@
 
 <img src="icon.svg" width="72" alt="dsh-group-status"/>
 
-# dsh-group-status — live status on collapsed folders
+# dsh-group-status: aggregated status badge for collapsed groups
 
 [中文](./README.md) | **English**
 
-[![version](https://img.shields.io/badge/version-0.3.0-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
+[![version](https://img.shields.io/badge/version-0.5.1-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--rc.2-4D6BFE)](https://github.com/deepseek-ai/deepseek-harness)
 
 </div>
 
-> In the DSH sidebar, **folding a workspace group takes every session status inside down with it** — running, approvals, reviews, all gone. This plugin gives the collapsed folder row its own aggregated badge: **yellow = pending approval, spinner = running, green = completed**, plus clock and review icons fed by other plugins, with a count and hover details. Expanded groups are untouched — child rows carry their own statuses.
-
----
-
-## Preview
-
-**Collapsed folder rows carry the aggregate badge** — `tmp` has one running session (spinner), one completed (green dot), one scheduled task (clock), count `3`:
-
-<p align="center">
-<img src="docs/media/screenshot-folders.png" width="267" alt="Collapsed sidebar group tmp: spinner, green dot, clock icon and count 3"/>
-</p>
-
-**Hover for details** — the hover card appends aggregated detail lines under the path and creation time:
-
-<p align="center">
-<img src="docs/media/screenshot-hover.png" width="300" alt="Hover card: 1 Waiting for answer · 1 Running"/>
-</p>
-
-> The badge reuses DSH's native `StateDot`, so colors stay identical to the session rows. Both images are real screenshots.
-
----
-
-## How to use
-
-Fold any group that has live sessions; a badge appears after the folder name:
-
-| Glyph | Meaning | Color |
-|---|---|---|
-| Yellow dot | Pending approval / plan review / answer inside | warning (same as rows) |
-| Spinner | Running sessions inside, incl. running subagents | ongoing (`StateDot` animation) |
-| Green dot | Completed-unread sessions inside | done (same as the row) |
-| Clock | Scheduled tasks inside (data from dsh-later) | purple · orange (≤5 min) · red (overdue) |
-| Hourglass | Sessions waiting for a PR review (data from dsh-gitea-dispatch) | amber · red (the CI wait window lapsed) |
-
-Rules:
-
-- **Completed reaches the badge**: `done` (completed-unread) now shows a green dot while folded, reusing the same `StateDot` state as the session row; a group with nothing but completed sessions shows a badge just like any other.
-- **The count** = approvals + running (**including running subagents**) + completed + sessions with scheduled tasks + sessions waiting for review. Whether the number renders at all is gated by `countThreshold` (default 2 — a lone item shows dots only).
-- **Hover details**: the folder row's hover card appends lines in the order `approval · plan review · answer · running · subagents · waiting review · scheduled tasks · completed`, e.g. `1 Waiting for answer · 1 Running`. The waiting-review line carries **which PR** and **how long is left**, e.g. `1 Waiting for review (3min left) · #2783`.
-- **Expanding defers to the rows**: the aggregate badge only renders while collapsed; expanded groups keep their per-row statuses with no duplication.
-- **Accessible**: the badge is `role="img"` with a localized `aria-label` (e.g. `1 Waiting for answer · 1 Running`) and the same text as its `title`. Waiting and overdue are **two different sentences** (`Waiting for review` / `Waiting for review (overdue)`), not one sentence in two colours.
-- **Only scheduled reminders pulse.** A lapsed review wait does not animate, matching how dsh-gitea-dispatch draws its own session-row icon for that state: it stops the animation on purpose (its words: "stillness means no longer expecting"), and its `overdue` means only that CI stopped waiting, not that the review failed. A pulsing folder next to a still row icon would state the same fact twice. The red colour stays, same token as the publisher.
-
-### Settings
-
-**Plugins** in the sidebar → **dsh-group-status** (the config form on the bundle's page, between its description and the component rows):
-
-| Field | Default | Meaning |
-|---|---|---|
-| `showRunningInBadge` | `true` | Whether the folded badge shows the "running" spinning dot |
-| `showPendingInBadge` | `true` | Whether the folded badge shows the "pending" yellow dot (approval / plan review / waiting for answer) |
-| `showCompletedInBadge` | `true` | Whether the folded badge shows a green "completed" dot |
-| `showHoverDetails` | `true` | Whether the hover card shows the aggregated status detail lines |
-| `countThreshold` | `2` | The count is shown on the badge only when the total is >= this value (default 2, i.e. omits the count when it equals 1 — the dots already convey "something is happening"; set to 1 to always show) |
-
-Switching a tier off takes it out of the folded row's aggregate entirely — no dot/icon, no contribution to the badge count, no hover detail line, and it no longer keeps the badge alive. **The state dot on a session row itself is unaffected**: that is row-level state, not a folder hint. With `showHoverDetails` off, the hover card shows only the title, path, and creation time.
-
-**External sources (e.g. "waiting for review", "scheduled") have no switch on this page, on purpose.** This plugin knows no concrete source, so its config face must not carry another plugin's domain names or icon shapes either. To silence a source, use **that plugin's own** settings card: when it is off, it simply does not register its facet, and the badge loses that glyph. See "Who owns visibility" in [`docs/facet-protocol.md`](docs/facet-protocol.md).
-
-> ⚠️ As of this change the `showScheduledInBadge` / `showWaitingReviewInBadge` fields are removed (they hard-coded names and icon shapes on behalf of dsh-later / dsh-gitea-dispatch). Values left in the profile are no longer read and behave as the default "show".
-
-Saving applies it live, with no refresh; the Host writes it into the profile patch's `dsh-group-status` entry `config`, so it survives a page reload. When the settings face cannot be read (e.g. the Host serves no settings service), it falls back to the default "show", matching the schema default — failing to read a config is not the user turning it off.
+> In the DSH sidebar, collapsing a workspace group hides the status of every session inside it: running sessions, sessions awaiting approval, sessions awaiting an answer. This plugin adds one aggregated badge to the collapsed folder row (yellow dot for pending, spinner for running, green dot for unread completed, optional external status glyphs, plus a count). Hovering the row lists each tier separately. Nothing is drawn while the group is expanded; its child rows already show their own state.
 
 ---
 
 ## Feature overview
 
-- **Visible when folded**: the aggregate only exists while collapsed; an expanded sidebar is pixel-identical to stock. Nested groups are supported too — when a parent group is folded, its badge aggregates sessions from all descendant groups.
-- **Same source of truth as rows**: priority, colors and wording all reuse the row derivation and `StateDot`; blank and archived sessions are skipped.
-- **Cross-plugin aggregation** (optional): scheduled tasks from dsh-later, waiting PR reviews from dsh-gitea-dispatch — works fine with neither installed.
-- **Usable with zero config**: sensible defaults out of the box; 7 settings let you fine-tune which sources appear in the folded badge, hover details, and count display.
-- **No stock files touched**: not a single file of the published `dsh-client-ui-workspace` is modified; all changes live in this repo's source, and the profile patch is two lines (add this package, disable the stock row).
-- **Localized**: follows the DSH UI language (中文 / English) by reusing the stock locale keys. This package adds `status.waitingReview`, `status.scheduled`, a fallback `status.needsAttention` for facets that ship no wording, and the three waiting-review states `status.waitingReviewOverdue` / `status.waitingReviewImminent` / `status.waitingReviewLeft`.
+- **Visible while collapsed**: the badge appears only on collapsed groups; once expanded, each child row carries its own state. Nested groups aggregate the whole subtree.
+- **Same source of truth as session rows**: the three state dots reuse the stock `StateDot` and the row-level derivation. Blank and archived sessions are skipped.
+- **Optional cross-plugin aggregation**: other plugins register their own status sources (scheduled tasks, waiting PR reviews). This plugin contains no branch keyed on a specific source.
+- **Usable with zero config**: 5 settings cover the three tiers, hover details, and the count threshold. All of them default to "show".
+- **No stock files modified**: this package registers the same slot and disables the stock row in the profile patch. Not one file of the published upstream package is touched.
+- **Localized**: follows the DSH UI language (中文 / English). Wording for an external status source comes from that source's own plugin.
+- **Accessible**: the badge is `role="img"`, its `aria-label` matches the hover `title`, and state differences are not carried by color alone.
 
 ---
 
-## Cross-plugin status: the facet protocol
+## Preview
 
-A folded group badge can show state owned by **another plugin**. The direction is inverted: **the owner registers its facts in**, and this plugin's aggregation and render paths **know no specific source** (not one branch keyed on who is reporting). The full contract lives in [docs/facet-protocol.md](docs/facet-protocol.md).
+The `tmp` group below holds 1 running session (spinner), 1 completed (green dot), and 1 scheduled task (clock), counting `3`:
 
-One exception remains open: the two current sources each have a dedicated setting, so adding a **third** one still touches 14 places in this plugin (cost and the way to close it are in the protocol doc's Known trade-offs). The transitional hosting is closed: `legacy/` and its two `dsh.client.external` entries are deleted, and both dsh-later and dsh-gitea-dispatch now register their own facets.
+<p align="center">
+<img src="docs/media/screenshot-folders.png" width="267" alt="Collapsed tmp group in the sidebar: spinner, green dot, clock glyph and the number 3"/>
+</p>
 
-```js
-const gs = require('dsh-group-status/client')
-const unregister = gs?.registerGroupStatusFacet?.({
-  protocol: gs.GROUP_STATUS_FACET_PROTOCOL_VERSION,
-  id: 'my-plugin.review',              // '<package>.<state>'
-  subscribe: store.subscribe,           // an external-store face, not a React hook
-  getSnapshot: store.getSnapshot,
-  fold: (snapshot, sessionIds, now) => ({ count, tone, pulse, data }),
-  merge, label, renderIcon, order,             // all optional
-})
-ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
-```
+Hovering the folder row appends the per-tier lines under the path and creation time:
 
-- The five required members alone already render: `N Needs attention` plus a tone-coloured generic dot. Your internal id is **never** read out to the user.
-- Icon and wording belong to the owner (`renderIcon` / `label`): what a state looks like, and whether a lapsed wait should sit still or pulse, is its knowledge. Previously this plugin inferred it from state names and ended up contradicting the owner, which draws `overdue` **statically** while the badge pulsed.
-- A collapsed parent spans the whole subtree, so same-facet folds get merged again. That is why `fold` returns structured `data` rather than text: text cannot be merged. Without `merge` the default rule applies (counts add, the more urgent tone wins, `data` is dropped).
-- When this plugin is absent or disabled `require` throws: catch it and carry on, your own features are unaffected.
-- Same-id conflicts are settled **by origin, not by registration order** (the host does not order plugin `apply`): the owner always wins over a custodial (`legacy`) registrant.
+<p align="center">
+<img src="docs/media/screenshot-hover.png" width="300" alt="Hover card: 1 waiting for answer · 1 running"/>
+</p>
 
-### Why `subscribe` / `getSnapshot` instead of a React hook
-
-The badge is a React component, and hook order must be constant across renders of one component. Facets register and unregister at runtime: calling each owner's hook would change the hook count the moment the registry moves, and React throws "Rendered more hooks than during the previous render". This plugin subscribes once and reads one version number, however many sources stand behind it.
-
-### Who is connected today
-
-| facet id | Owner |
-|---|---|
-| `dsh-gitea-dispatch.waiting-review` | registered by dsh-gitea-dispatch itself (its issue #47) |
-| `dsh-later.schedule` | registered by dsh-later itself (its issue #36) |
-
-This plugin keeps no field types, tone mapping or wording for either. A third source follows the contract below and needs no change here, unless it also wants its own toggle.
-
-> ⚠️ Cross-plugin **value imports** do not work in this project (measured: `Could not resolve "dsh-group-status"`: a client bundle is a self-contained closure factory). Owners therefore use only the runtime symbols from `require('dsh-group-status/client')` and never `import` this package's types; copying the structural declarations from the protocol doc is enough.
 ---
 
-## Quick start
-
-### Install into DSH
-
-**npm install (recommended, pre-built, no auth required):**
+## Install
 
 ```bash
 dsh plugin --profile web add dsh-group-status
-# Takes effect after restarting dsh web (the whole sidebar package is swapped)
 ```
 
-Or install from GitHub:
+The sidebar is replaced as a whole bundle, so **`dsh web` must restart** after an install. Saving a setting applies immediately and needs no restart.
 
-```bash
-dsh plugin --profile web add "github:dsh-plugin-collection/dsh-group-status"
-# restart dsh web
-```
-
-For local development, link a checkout and rebuild as you edit `src/`:
-
-```bash
-git clone https://github.com/dsh-plugin-collection/dsh-group-status.git
-cd dsh-group-status
-pnpm install && pnpm build
-
-dsh plugin --profile web add "link:$PWD"
-# restart dsh web
-```
-
-> Dev tip: `pnpm watch` rebuilds on every `src/` change — but the sidebar is swapped as a whole, so **a dsh web restart is still required**.
-
-### Verify
-
-1. Fold a group with running / pending sessions → a badge appears after the folder name;
-2. Hover the folder row → the detail lines appear (matching the badge's wording);
-3. Expand the group → the badge disappears and child rows show their own statuses;
-4. No errors in the browser console.
-
-### Roll back
+To remove it (both profile patch entries are withdrawn together and the stock session row comes back; restart again):
 
 ```bash
 dsh plugin --profile web remove dsh-group-status
-# Both patch lines are withdrawn together; the stock row comes back. Restart to apply.
 ```
+
+This package changes no file inside the published upstream package: it registers the same slot and disables the stock `ui-workspace` row in the profile patch. For the local `link:` install used while editing code, see [Development](#development).
+
+---
+
+## Verify
+
+1. Collapse a group that contains a running or pending session: the badge appears after the folder name.
+2. Hover the folder row: the detail lines appear, with the same wording as the badge `aria-label`.
+3. Expand the group: the badge disappears.
+4. The browser console reports no errors.
+
+---
+
+## When the badge does not show
+
+| Symptom | Cause |
+|---|---|
+| Nothing changed after install | `dsh web` was not restarted (the sidebar is replaced as a whole bundle) |
+| The package was never loaded | The DSH kernel is outside `engines.dsh`, so the kernel answers `skipping profile bundle` (verified on `0.2.0-rc.2`) and the sidebar keeps stock behavior |
+| The group does have running or pending sessions, but no badge while collapsed | All four counted tiers are 0 (pending, running, completed, external contributions). Blank and archived sessions are not counted |
+| Dots but no number | The count is below `countThreshold` (default 2) |
+| No scheduled-task or waiting-review glyph | The companion plugin is not installed, not enabled, or it turned that status source off itself (visibility of an external source belongs to its owner) |
+
+---
+
+## Reading the badge
+
+This plugin draws three session state tiers:
+
+| Glyph | Meaning | Color source |
+|---|---|---|
+| Yellow dot | The group has a session awaiting approval, plan review, or an answer | `StateDot` `warning`, same as session rows |
+| Spinner | The group has a running session (including running subagents) | `StateDot` `ongoing` |
+| Green dot | The group has a completed session that is still unread | `StateDot` `done`, same as session rows |
+
+External status sources supply their own glyph and color tier. This plugin decides neither their shape nor whether they pulse.
+
+- **Count** = pending + running (including running subagents) + completed + whatever each external source reports. Above 99 it shows `99+`; below `countThreshold` the number is omitted and only the dots are drawn.
+- **Order**: pending, running, external sources, completed. The relative order among external sources comes from their own `order`. Hover details use the same order as the dots, one line per tier, for example `1 waiting for answer · 1 running`. The waiting-review line carries the PR number and remaining time, supplied by its owner.
+- **Collapsed only**: no badge is drawn while a group is expanded. Nested groups aggregate the whole subtree, so a collapsed parent reports the sum over all descendant groups.
+- **Accessibility**: the badge is `role="img"`, the `aria-label` and the hover `title` carry the same localized wording, and states such as "overdue" are distinguished by wording, not by color alone.
+- **Pulse is per source**: whether an external source pulses is declared by that source. It never affects the whole badge, the count, or the host session state dot.
+
+---
+
+## Settings
+
+Sidebar **Plugins** → **dsh-group-status** (the config form on the bundle page):
+
+| Field | Default | Description |
+|---|---|---|
+| `showRunningInBadge` | `true` | Whether the collapsed badge shows the running spinner |
+| `showPendingInBadge` | `true` | Whether it shows the yellow dot for approval / plan review / waiting for answer |
+| `showCompletedInBadge` | `true` | Whether it shows the green completed dot |
+| `showHoverDetails` | `true` | Whether the hover card shows the aggregated detail lines |
+| `countThreshold` | `2` | Show the number only when the count reaches this value; set 1 to always show it |
+
+Turning a tier off removes it from the collapsed row entirely: no dot, no contribution to the count, no hover line, and it no longer keeps the badge visible. The state dot on a session row is unaffected, because that is row-level state. With `showHoverDetails` off, the hover card shows only the title, path, and creation time.
+
+Saving applies immediately. The Host writes the values into the `config` of the `dsh-group-status` entry in the profile patch, so they survive a reload. When the settings cannot be read (for example the Host exposes no settings service), the defaults apply: unread is not the same as turned off. Unknown fields left over in a profile are not read, so their effect equals the default.
+
+External sources deliberately have no switch on this page: this plugin knows no specific source, so its config surface must not carry another plugin's domain names or icon shapes either. To silence a source, use that plugin's own settings card; when it turns the source off it stops registering, and the badge loses that item. See "Who owns visibility" in [`docs/facet-protocol.md`](docs/facet-protocol.md) (Chinese only).
+
+---
+
+## Companion plugins (optional)
+
+| Plugin | What the collapsed badge gains | Availability |
+|---|---|---|
+| [dsh-later](https://github.com/dsh-plugin-collection/dsh-later) | Scheduled tasks in the group (clock glyph; color tier and wording owned by dsh-later) | Public npm |
+| `dsh-gitea-dispatch` | PRs awaiting review in the group (hourglass glyph; color tier and wording owned by dsh-gitea-dispatch) | Not published to public npm, see its own repository |
+
+The plugin works normally with neither installed. The waiting-review data comes entirely from the facet that `dsh-gitea-dispatch` registers; this plugin maintains no wording or color tier for it.
 
 ---
 
@@ -180,15 +138,42 @@ dsh plugin --profile web remove dsh-group-status
 
 | Item | Value |
 |---|---|
-| DSH core | declares `>=0.2.1-rc.2 <0.3.0-0`; verified on `0.2.1-rc.2` / `rc.3` / `rc.4` |
-| peer dependencies | `@deepseek-ai/cordis ~4.0.5` plus 12 `@deepseek-ai/dsh-*` at `^0.2.1-rc.2` |
-| Upstream base | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2` (source vendored into `src/`) |
-| Install shape | fork override: same slots registered, stock row disabled via `cordis.patch.yml` |
-| Optional partners | dsh-later (schedule summary), dsh-gitea-dispatch (waiting-review summary) |
+| DSH kernel | `engines.dsh: >=0.2.1-rc.2 <0.3.0-0` |
+| Verified generations | `0.2.1-rc.2` / `rc.3` / `rc.4` (gating, cold boot assembly, type check and the full suite pass on all three; real GUI acceptance was additionally done on rc.2) |
+| Peer dependencies | `@deepseek-ai/cordis ~4.0.5` plus 12 `@deepseek-ai/dsh-*` packages (range `^0.2.1-rc.2`) |
+| Upstream baseline | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`, source taken from the published package into this repo's `src/` |
 
-Those 12 peers are not metadata. Cores at or below 0.2.0 **do not read `engines.dsh`** — they judge compatibility purely from `@deepseek-ai/dsh*` peer ranges. Without the enumeration, 0.2.0 considers this package compatible and installs it; that generation never published `@deepseek-ai/dsh-api-remote-access`, so the client `inject` for `remoteAccess` never resolves, the fiber stays pending, `uiWorkspace` is never provided, and `ui-sidebar` / `ui-conversation` / `ui-chat` — 12 entries in all — fail to activate. The page becomes "Failed to load plugins" and the user loses the entire sidebar. With the peers declared, 0.2.0-rc.2 measured as `skipping profile bundle`, and the host is unharmed; from 0.2.1 on, `engines.dsh` decides alone and peers are ignored, so in-window generations are unaffected.
+On `rc.4` the **behavior** has drifted from the baseline (blank session reuse and draft initialization semantics). This package's fork still follows the baseline generation, so those improvements do not reach users: loading cleanly is not the same as behaving identically. The per-item differences and the triggers to act on them live in [docs/upgrading.md](docs/upgrading.md), section "上游代次跟踪".
 
-Every upstream generation requires a manual rebase — see the [upgrade runbook](./docs/upgrading.md). If upstream renames a slot, changes a component signature or the context contract, this package will not follow on its own.
+The 12 peer entries are not metadata. Kernels that do not read `engines.dsh` decide compatibility from the peer ranges alone, and a missing entry lets an old kernel load this package and fail the whole page. The mechanism is recorded in [docs/upgrading.md](docs/upgrading.md), section "兼容声明为什么长这样".
+
+---
+
+## For plugin authors: registering a status source
+
+A collapsed group badge can show state owned by another plugin, and the direction is inverted: **the owner registers its facts in**, while this plugin's aggregation and render paths know no specific source.
+
+```js
+const gs = require('dsh-group-status/client')
+const unregister = gs?.registerGroupStatusFacet?.({
+  protocol: gs.GROUP_STATUS_FACET_PROTOCOL_VERSION,
+  id: 'my-plugin.review',        // '<package>.<state>'
+  subscribe: store.subscribe,    // an external store surface, not a React hook
+  getSnapshot: store.getSnapshot,
+  fold: (snapshot, sessionIds, now) => ({ count, tone, pulse, data }),
+  label, renderIcon, order,      // optional: wording, glyph and order belong to the provider
+})
+ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
+```
+
+- The five required members (`protocol` / `id` / `subscribe` / `getSnapshot` / `fold`) already render: `N Needs attention` plus a generic dot colored by tone. Your internal id is never read out to the user.
+- Glyph and wording belong to the provider: what the state looks like, and whether an overdue one should stay still or pulse, is the provider's knowledge.
+- `fold` returns structured `data`, not text, because a collapsed parent group covers the whole subtree and same-named folds have to be merged again. Text cannot be merged.
+- When this plugin is not installed or not enabled, `require` throws. Catching that error is enough.
+- Same-id conflicts resolve by origin, independent of registration order: the state owner always wins over a stand-in registrant.
+- Cross-plugin **value imports** do not work in this project (the client bundle is a self-contained closure factory), so providers use only the runtime symbols from `require('dsh-group-status/client')` and never import this package's types.
+
+The full contract, every `FacetFold` field, the default merge, lifecycle and degradation, and the version rules are in [docs/facet-protocol.md](docs/facet-protocol.md) (Chinese only), including why the surface is `subscribe` / `getSnapshot` rather than a React hook.
 
 ---
 
@@ -196,34 +181,50 @@ Every upstream generation requires a manual rebase — see the [upgrade runbook]
 
 ```sh
 pnpm install
-pnpm build        # tsc typecheck + tsdown bundle → lib/
+pnpm build        # tsc type check + tsdown bundle → lib/
 pnpm watch        # rebuild on src/ changes (a dsh web restart is still required)
-pnpm test         # = test:node (node --test, 27 cases) + test:spec (vitest + jsdom, 165 cases)
-pnpm test:spec    # the upstream spec suite only
+pnpm test         # test:node (node --test, 49 cases) + test:spec (vitest + jsdom, 183 cases)
+pnpm test:spec    # spec suite only
+pnpm check-upstream   # upstream generation tracking (add --latest for the highest published version)
 ```
 
-`tests/` is a copy of the upstream suite plus this repository's own [tests/group-status.client.spec.ts](tests/group-status.client.spec.ts), which covers the fold aggregation itself (counts, priority, cross-plugin sources, blank/archived skipping).
+### Local install while developing
 
-Seven further upstream specs only run inside the DSH monorepo: they either need `dsh-client-test-runtime`'s deep imports of **unpublished sources**, or take runtime values out of a published `…/client` bundle whose closure expects the host app to preload its whole dependency set. They are explicitly skipped at the top of [vitest.config.ts](vitest.config.ts) with the reason spelled out per group — **do not light them up with stubs**; that would only test the stub.
+You do not need to publish a package to test changes; mount this checkout into the local profile with `link:`:
+
+```bash
+git clone https://github.com/dsh-plugin-collection/dsh-group-status.git
+cd dsh-group-status
+pnpm install && pnpm build
+dsh plugin --profile web add "link:$PWD"
+```
+
+`pnpm watch` rebuilds on `src/` changes, and each rebuild still requires a `dsh web` restart.
+
+Besides the vendored upstream copies, `tests/` holds this repository's own cases for the aggregation: counting, mutual exclusion among pending kinds, subagents, blank and archived skipping, external source registration and unregistration, hover wording. 9 upstream specs only run inside the DSH monorepo; the reasons are listed one by one at the top of [vitest.config.ts](vitest.config.ts).
+
+The part of the host contract that can **fail silently** (the pending-kind set this plugin accepts, and the two state facts read from the host) is compared against the locked host implementation by [tests/host-pending-kinds.node.test.mjs](tests/host-pending-kinds.node.test.mjs), so a host change turns it red. README facts that drift with the code (version badge, setting fields and defaults, test case counts, forbidden wording) are guarded by [tests/readme-facts.node.test.mjs](tests/readme-facts.node.test.mjs).
 
 ---
 
 ## Known limitations
 
-- **Upstream bumps need a manual rebase**: the upstream source is vendored (`src/`, `tests/`) and this is not a stable public API; slot names, component signatures and context contracts may shift under it. Steps are in the [upgrade runbook](./docs/upgrading.md).
-- **One extra full measurement pass per status change**: aggregation shares the expanded derivation, and to make collapsed parents count correctly **expanded groups get measured too** — they draw no badge themselves, but a collapsed ancestor needs their numbers. Huge groups (hundreds of sessions) cost one extra traverse plus a fold up the tree per status change — same order as expanded rendering, acceptable. A perf spec guards this cost.
-- **It produces no status itself**: the cross-plugin icons depend entirely on the summary APIs published by dsh-later / dsh-gitea-dispatch. Without them you simply lose those two icons.
-- **The count is coarser than the details**: scheduled tasks are counted per *session*, not per task; the exact task count lives in dsh-later's own UI.
-- **Collapsed sidebar only**: this plugin only adds an aggregate display — it does not touch the session state machine or the per-row badge predicates.
+- **An upstream generation change needs a manual rebase**: this package vendors upstream source and does not use a stable public API. When the host changes a slot name, component signature, or context contract, follow [docs/upgrading.md](docs/upgrading.md).
+- **One more full measurement pass per state change**: the aggregate count shares its derivation with the expanded state, so an expanded group must be measured too, because its ancestors use its numbers. On very large groups (hundreds of sessions) that pass costs one more traversal plus an upward roll, guarded by the performance cases in `tests/group-status.client.spec.ts`.
+- **External glyphs depend entirely on their providers**: a missing companion plugin simply means one fewer glyph; it never affects the core badge. When a provider ships no wording, the line falls back to the generic "needs attention".
+- **The count is coarser than the details**: an external source contributes the number it reports, and this plugin does not redefine another source's counting basis.
+- **Sidebar collapsed state only**: neither the session state machine nor the row-level badge rules change.
+- **Countdown precision is one minute**: the badge re-renders only when a provider's store notifies, so a second-level readout would sit stale on an old value.
 
 ---
 
-## Technical documentation
+## Documentation
 
-Developer and maintainer material, kept out of this README:
+- [docs/facet-protocol.md](docs/facet-protocol.md): the cross-plugin status source protocol (required reading for providers)
+- [docs/upgrading.md](docs/upgrading.md): upstream baseline, local change list, rebase and verification, generation tracking, why the compatibility declaration looks like this
+- [src/client/cross-plugin-summary.ts](src/client/cross-plugin-summary.ts): the provider-side template, with its design notes in the file header
 
-- [Upstream upgrade runbook](./docs/upgrading.md) — where the baseline came from, what changed locally, how to rebase and verify on the next upstream release
-- [Cross-plugin summary template](./src/client/cross-plugin-summary.ts) — the provider-side skeleton itself; its header is the design note and carries the measured "copy, do not import" evidence
+Both documents are currently Chinese only.
 
 ## License
 

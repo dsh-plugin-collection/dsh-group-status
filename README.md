@@ -2,179 +2,137 @@
 
 <img src="icon.svg" width="72" alt="dsh-group-status"/>
 
-# dsh-group-status — 收起的分组也看得见活
+# dsh-group-status：折叠分组的聚合状态徽标
 
 **中文** | [English](./README.en.md)
 
-[![version](https://img.shields.io/badge/version-0.3.0-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
+[![version](https://img.shields.io/badge/version-0.5.1-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--rc.2-4D6BFE)](https://github.com/deepseek-ai/deepseek-harness)
 
 </div>
 
-> DSH 侧栏里**分组一收起，里面会话的状态就跟着折叠消失**——进行中、待审批、等待评审全看不见了。这个插件让收起的文件夹行自己长出聚合徽标：**黄点待审批、转圈进行中**，再挂上定时任务与等待评审两个图标，带数字、悬停看明细；展开后一个像素都不改，子行自带状态。
-
----
-
-## 效果预览
-
-**收起的文件夹行自带聚合徽标** —— 下面 `tmp` 有 1 个进行中（转圈）、1 个已完成（绿点）、1 个定时任务（时钟），数字 `3`：
-
-<p align="center">
-<img src="docs/media/screenshot-folders.png" width="267" alt="侧栏中收起的 tmp 分组：转圈、绿点、时钟图标与数字 3"/>
-</p>
-
-**悬停看明细** —— hover 卡在原路径、创建时间下面追加聚合明细行：
-
-<p align="center">
-<img src="docs/media/screenshot-hover.png" width="300" alt="悬停卡片：1 等待回答 · 1 进行中"/>
-</p>
-
-> 徽标复用的就是 DSH 原生 `StateDot`，颜色与行内状态同源，不会走样。上面两张是实机截图。
-
----
-
-## 使用方法
-
-收起任意有活会话的分组，文件夹名后面出现徽标：
-
-| 符号 | 含义 | 颜色 |
-|---|---|---|
-| 黄点 | 组内有待审批 / 计划待审 / 待回答 | warning（与行内一致）|
-| 转圈 | 组内有进行中（含运行中的子智能体） | ongoing（`StateDot` 转圈动画）|
-| 绿点 | 组内有已完成未读的会话 | done（与行内一致）|
-| 时钟 | 组内有定时任务（数据来自 dsh-later） | 紫 · 橙（≤5 分钟）· 红（已到期）|
-| 沙漏 | 组内有等待评审的 PR（数据来自 dsh-gitea-dispatch） | 琥珀 · 红（CI 等待窗口已到期）|
-
-规则：
-
-- **已完成进徽标**：`done`（已完成未读）折叠时也显示绿点，和会话行的绿点同一个 `StateDot` 状态；一组只剩已完成时徽标照常出现。
-- **数字** = 待审批 + 进行中（**含运行中的子智能体**）+ 已完成 + 有定时任务的会话 + 等待评审的会话；数字是否出现受 `countThreshold` 控制（默认 2，即只剩 1 项时只画点、不显数字）。计数判据与**会话行自身的状态优先级同源**：等审批的会话照样计入它跑着的子智能体；有运行中子智能体但自己没在跑的会话不再额外计一次已完成——折叠前后看到的是同一套规则（Issues #25）。
-- **悬停明细**：文件夹行 hover 卡在路径、创建时间下面，按 `等待审批 · 计划待审 · 等待回答 · 进行中 · 子智能体 · 等待评审 · 定时任务 · 已完成` 的顺序追加明细行，例如 `1 等待回答 · 1 进行中`。等待评审那一行带**在等的 PR 号**与**还剩多久**，例如 `1 等待评审（剩 3分钟） · #2783`。
-- **展开即让位**：聚合徽标只在折叠时出现；展开后子行自带状态，不重复显示。
-- **无障碍**：徽标是 `role="img"` + 本地化 `aria-label`（如 `1 等待回答 · 1 进行中`），悬停 `title` 同文案，读屏与鼠标都读得到。等待评审的 `waiting` 与 `overdue` 在文案里就是两句话（`等待评审` / `等待评审（已超时）`），不只是颜色不同。
-- **脉冲只给定时任务**：等待评审超时不闪动。数据所有者 dsh-gitea-dispatch 把自己那条会话行的超时图标画成**静止**（其 `lib/waiting-glyph.js`：「静止即不再期待」），且它的 `overdue` 只代表 CI 的等待窗口到期、不代表评审失败。同一条等待在父级徽标上闪、在行内静止，就是同一事实的两种说法。红色保留，与提供方同色。
-- **脉冲逐来源生效**：每个来源的 `pulse` 只作用于它自己交出的那枚图标，不作用于整只徽标，也不作用于计数数字与宿主会话状态点。同一分组里「定时任务 overdue」与「等待评审」并存时，只有前者闪；等待评审是否静止不取决于邻居开没开闪（Issues #22）。
-- **徽标与悬停明细同源**：外部来源的图标在徽标和 hover 明细里是**同一个元素**（provider 交出的、带色档的那一枚），色档不会在两处打架；没有 `renderIcon` 的来源在两处都退回通用点。宿主会话状态在明细里仍用三档 `StateDot`，因为那三档是宿主的语义（Issues #24）。
-
-### 设置项
-
-侧栏 **插件** → **dsh-group-status**（bundle 详情页的配置表单，在描述与「包含的组件」之间）：
-
-| 字段 | 默认 | 说明 |
-|---|---|---|
-| `showRunningInBadge` | `true` | 折叠徽标是否显示「进行中」转圈 |
-| `showPendingInBadge` | `true` | 折叠徽标是否显示「待审批 / 待评审 / 待回答」黄点 |
-| `showCompletedInBadge` | `true` | 折叠徽标是否显示「已完成」绿点 |
-| `showHoverDetails` | `true` | 悬停卡是否显示聚合状态明细行 |
-| `countThreshold` | `2` | 徽标数字显示阈值：数量 >= 此值时才显示数字（默认 2，即 count=1 时省略——点已表达"有东西在发生"；设为 1 则始终显示） |
-
-按状态关掉后，对应档位完全退出折叠行的聚合提示——不画点/图标、不计入徽标数字、不进悬停明细、不参与「是否显示徽标」的判断。**会话行自身的状态点不受影响**：那是行级状态，不是分组提示。`showHoverDetails` 关闭后，悬停卡只显示标题、路径与创建时间。
-
-**外部来源（如「等待评审」「定时任务」）在这一页没有开关**，这是有意的：本插件不认识任何具体来源，所以配置面里也不该有别人家的域名与图标形状。要关某个来源，去**那个插件自己**的设置卡片；它关掉时不注册 facet，徽标自然就没有那一格。详见 [`docs/facet-protocol.md`](docs/facet-protocol.md) 的「显隐归谁」。
-
-> ⚠️ 本次起 `showScheduledInBadge` / `showWaitingReviewInBadge` 两个字段已删除（它们曾替 dsh-later / dsh-gitea-dispatch 写死名字与图标形状）。profile 里残留的旧值不再被读取，等同回到默认「显示」。
-
-点「保存」后即时生效，无需刷新；设置由宿主写进 profile patch 的 `dsh-group-status` 条目 `config`，刷新页面后仍在。设置面读不到时（例如宿主未提供设置服务）回落为默认「显示」，与 schema 默认值同源——读不到配置不等于用户关掉了。
+> DSH 侧栏里，工作区分组一收起，组内会话的状态就全部不可见：进行中的、等审批的、等回答的，都藏在折叠里面。本插件在收起的文件夹行上显示一个聚合徽标（黄点表示待审批，转圈表示进行中，绿点表示有未读的已完成，后面可跟外部状态图标与一个数量），悬停可看逐项明细。分组展开时不显示徽标，状态由子行各自呈现。
 
 ---
 
 ## 特性一览
 
-- **收起可见**：聚合状态只在分组折叠时出现，展开后的侧栏与官方版本逐像素一致。嵌套分组也支持——父分组折叠时，徽标聚合所有后代分组的会话状态。
-- **与行内同源**：优先级、颜色、文案全部复用行内状态的派生逻辑与 `StateDot`，跳过空白会话与已归档会话。
-- **跨插件聚合**（可选）：dsh-later 的定时任务、dsh-gitea-dispatch 的等待评审，两个都没装也照常工作——见下。
-- **零配置可用**：默认开箱即用；7 个设置项可精细控制折叠徽标的来源显隐、悬停明细与数字样式。
-- **本体零改动**：官方 `dsh-client-ui-workspace` 包文件一个不动；改动全在本仓库源码里，profile 补丁只有两条（装本包、禁用官方行）。
-- **多语言**：跟随 DSH 界面语言（中文 / English），复用官方文案键；本包新增 `status.waitingReview`、`status.scheduled`、陌生来源无文案时的兜底 `status.needsAttention`，以及等待评审的三档状态文案 `status.waitingReviewOverdue` / `status.waitingReviewImminent` / `status.waitingReviewLeft`。
+- **收起可见**：徽标只在分组收起时出现，展开后状态由子行各自呈现；嵌套分组聚合整棵子树。
+- **与行内同源**：三档状态点复用官方 `StateDot` 与会话行的派生逻辑，跳过空白会话与已归档会话。
+- **跨插件聚合**（可选）：其他插件可注册自己的状态源（定时任务、等待评审等），本插件不含任何来源的专用分支。
+- **零配置可用**：5 个设置项控制三档显隐、悬停明细与数字阈值，默认全部显示。
+- **不改官方包**：同槽位注册并在 profile 里禁用官方行，官方发布包的文件一个不动。
+- **多语言**：跟随 DSH 界面语言（中文 / English），外部状态的文案由该状态的提供方给出。
+- **无障碍**：徽标是 `role="img"`，读屏文案与悬停 `title` 同源，状态区分不只靠颜色。
 
 ---
 
-## 跨插件状态：facet 协议
+## 效果预览
 
-折叠分组徽标可以显示**别的插件**的状态。方向是反的：**状态所有者把自己的事实注册进来**，本插件的聚合与渲染路径**不认识任何具体来源**（无一处按来源写分支）。完整契约见 [docs/facet-protocol.md](docs/facet-protocol.md)。
+下面 `tmp` 分组里有 1 个进行中（转圈）、1 个已完成（绿点）、1 个定时任务（时钟），计数 `3`：
 
-一处尚未收口的例外：现有的两个来源各有一个专用设置项，加**第三个**独立开关仍需改本插件 14 个改动点（成本与收口方案见该文档的「已知取舍」）。过渡期代管已经收口：`legacy/` 目录连同两条 `dsh.client.external` 声明已删除，dsh-later 与 dsh-gitea-dispatch 各自注册自己的 facet。
+<p align="center">
+<img src="docs/media/screenshot-folders.png" width="267" alt="侧栏中收起的 tmp 分组：转圈、绿点、时钟图标与数字 3"/>
+</p>
 
-```js
-const gs = require('dsh-group-status/client')
-const unregister = gs?.registerGroupStatusFacet?.({
-  protocol: gs.GROUP_STATUS_FACET_PROTOCOL_VERSION,
-  id: 'my-plugin.review',              // '<包名>.<状态名>'
-  subscribe: store.subscribe,           // 外部存储面，不是 React hook
-  getSnapshot: store.getSnapshot,
-  fold: (snapshot, sessionIds, now) => ({ count, tone, pulse, data }),
-  merge, label, renderIcon, order,             // 全部可选
-})
-ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
-```
+悬停文件夹行，明细追加在路径与创建时间下面：
 
-- 只交 `protocol` / `id` / `subscribe` / `getSnapshot` / `fold` 五项就能显示：「N 需要关注」加一个按色档取色的通用点。**不会**把内部 id 念给用户。
-- 图标与文案归提供方（`renderIcon` / `label`）：「这个状态长什么样、超时该静止还是该闪」是它的知识。上一版由本插件按状态名反推，结果与提供方自己的行内图标相反（提供方把 `overdue` 画成静止，徽标却在脉冲）。
-- 折叠的父文件夹覆盖整棵子树，同名的折果要再合并一次，所以 `fold` 交结构化 `data` 而不是文本：文本合并不了。不写 `merge` 时用缺省规则（数量相加、色档取更紧急、`data` 丢弃）。
-- 本插件未安装 / 未启用时 `require` 抛错：`try/catch` 兜住即可，不影响你其余功能。
-- 同 id 冲突**由来源决胜，与注册顺序无关**（宿主不保证 apply 先后）：状态所有者恒胜代管者（`legacy`）。
+<p align="center">
+<img src="docs/media/screenshot-hover.png" width="300" alt="悬停卡片：1 等待回答 · 1 进行中"/>
+</p>
 
-### 为什么用 `subscribe` / `getSnapshot`，不用 React hook
+三档会话状态点复用 DSH 原生 `StateDot`，颜色与会话行同源。
 
-徽标是 React 组件，而 hook 调用序列必须逐次渲染恒定。facet 是运行时注册 / 注销的：逐个调提供方的 hook，注册面一变 hook 数量就变，React 直接抛 "Rendered more hooks than during the previous render"。本插件只订阅一次、只读一个版本号，背后挂多少个来源都与 hook 数量无关。
-
-### 现有接入方
-
-| facet id | 归属 |
-|---|---|
-| `dsh-gitea-dispatch.waiting-review` | dsh-gitea-dispatch 自己注册（其 Issues #47） |
-| `dsh-later.schedule` | dsh-later 自己注册（其 Issues #36） |
-
-本插件不再为这两家持有任何字段类型、色档映射或文案。要加第三个来源，照下面的契约注册即可，本仓库无需改动（除非还要一个独立开关）。
-
-> ⚠️ 跨插件**值导入**在本项目走不通（实测 `Could not resolve "dsh-group-status"`：客户端 bundle 是自包含的闭包工厂），所以提供方只认 `require('dsh-group-status/client')` 拿到的运行时符号，不 `import` 本包的类型。协议形状见文档，抄一份结构声明即可。
 ---
 
-## 快速开始
-
-### 安装到 DSH
-
-**npm 安装（推荐，预构建产物，无需授权）：**
+## 安装
 
 ```bash
 dsh plugin --profile web add dsh-group-status
-# 重启 dsh web 后生效（侧栏是整包替换，需重新生成浏览器模块）
 ```
 
-或者从 GitHub 安装：
+侧栏是整包替换，**装完需要重启 `dsh web`** 才生效。配置项在插件页保存后即时生效，不用重启。
 
-```bash
-dsh plugin --profile web add "github:dsh-plugin-collection/dsh-group-status"
-# 重启 dsh web 后生效
-```
-
-本机开发时用 link，改完 `src/` 重建即可生效：
-
-```bash
-git clone https://github.com/dsh-plugin-collection/dsh-group-status.git
-cd dsh-group-status
-pnpm install && pnpm build
-
-dsh plugin --profile web add "link:$PWD"
-# 重启 dsh web
-```
-
-> 开发提示：`pnpm watch` 监听 `src/` 自动重建；但侧栏是整包替换，**改完仍需重启 dsh web**。
-
-### 验证
-
-1. 找一个有进行中 / 待审批会话的分组 → 收起 → 文件夹名后出现徽标；
-2. 悬停文件夹行 → 明细行出现（与徽标文案一致）；
-3. 展开分组 → 徽标消失，子行自带状态；
-4. 浏览器 console 无报错。
-
-### 回滚
+卸载（两条 profile 补丁一起撤，官方会话行自动回来，同样要重启）：
 
 ```bash
 dsh plugin --profile web remove dsh-group-status
-# 两条补丁一起撤，官方行自动回来；重启 dsh web 生效
 ```
+
+本包不改官方发布包里的任何文件：它注册同一个槽位，并在 profile 里禁用官方 `ui-workspace` 行。改代码时的本机 link 安装见[开发](#开发)。
+
+---
+
+## 验证
+
+1. 找一个含进行中或待审批会话的分组，收起 → 文件夹名后出现徽标；
+2. 悬停文件夹行 → 出现明细行，文案与徽标 `aria-label` 一致；
+3. 展开分组 → 徽标消失；
+4. 浏览器 console 无报错。
+
+---
+
+## 徽标不出现时
+
+| 现象 | 原因 |
+|---|---|
+| 装完没反应 | 没重启 `dsh web`（侧栏整包替换） |
+| 本包完全没被装载 | DSH 内核在 `engines.dsh` 窗口之外，内核直接 `skipping profile bundle`（实测 `0.2.0-rc.2`），侧栏保持官方行为 |
+| 组内确有进行中或待审批的会话，收起后却没有徽标 | 组内四档计数（待审批、进行中、已完成、外部来源贡献）全为 0；空白会话与已归档会话不计入 |
+| 只有状态点、没有数字 | 计数小于 `countThreshold`（默认 2） |
+| 没有定时任务或等待评审图标 | 对应搭档插件未安装、未启用，或该插件自己关闭了这个状态源（外部状态的显隐由来源自己决定） |
+
+---
+
+## 徽标怎么读
+
+本插件自己画三档会话状态：
+
+| 符号 | 含义 | 颜色来源 |
+|---|---|---|
+| 黄点 | 组内有待审批 / 计划待审 / 等待回答 | `StateDot` `warning`，与会话行一致 |
+| 转圈 | 组内有进行中（含运行中的子智能体） | `StateDot` `ongoing` |
+| 绿点 | 组内有已完成但未读的会话 | `StateDot` `done`，与会话行一致 |
+
+外部状态源（定时任务、等待评审等）交自己的图标与色档，本插件不决定它们的图标形状、颜色档位与是否闪烁。
+
+- **计数** = 待审批 + 进行中（含运行中的子智能体）+ 已完成 + 各外部来源自己报的条数。计数大于 99 显示 `99+`；小于 `countThreshold` 时省略数字，只画点。
+- **排布**：待审批、进行中、外部来源、已完成。外部来源之间的次序由各自的 `order` 决定。悬停明细与徽标点行同一套次序，逐档一行，例如 `1 等待回答 · 1 进行中`。等待评审那一行由提供方带上 PR 号与剩余时长。
+- **只在收起时出现**：分组展开后不显示徽标，状态由子行各自呈现。嵌套分组聚合整棵子树，父分组折叠时读到的是所有后代分组的合计。
+- **无障碍**：徽标是 `role="img"`，`aria-label` 与悬停 `title` 同文案并随界面语言本地化；超时一类的区分不只靠颜色，文案里是两句不同的话。
+- **脉冲按来源生效**：某个外部来源闪不闪由它自己声明，不连带整只徽标、计数数字或宿主会话状态点。
+
+---
+
+## 设置
+
+侧栏 **插件** → **dsh-group-status**（bundle 详情页的配置表单）：
+
+| 字段 | 默认 | 说明 |
+|---|---|---|
+| `showRunningInBadge` | `true` | 折叠徽标是否显示「进行中」转圈 |
+| `showPendingInBadge` | `true` | 折叠徽标是否显示「待审批 / 计划待审 / 等待回答」黄点 |
+| `showCompletedInBadge` | `true` | 折叠徽标是否显示「已完成」绿点 |
+| `showHoverDetails` | `true` | 悬停卡是否显示聚合状态明细行 |
+| `countThreshold` | `2` | 计数达到该值才显示数字；设为 1 则始终显示 |
+
+关掉一档，它完全退出折叠行的聚合提示：不画点、不计入数字、不进明细、不参与「是否显示徽标」的判断。会话行自身的状态点不受影响，那是行级状态。`showHoverDetails` 关掉后，悬停卡只剩标题、路径与创建时间。
+
+点「保存」即时生效，无需刷新。设置由宿主写进 profile patch 的 `dsh-group-status` 条目 `config`，刷新页面后仍在。读不到设置面（例如宿主未提供设置服务）时回落为默认值「全部显示」：读不到不等于用户关掉。profile 里残留的未知字段不读取，行为等同默认。
+
+外部来源在这张表单里没有开关，这是设计：本插件不认识任何具体来源，配置面也就不该出现别家的域名与图标形状。要关某个来源，去那个插件自己的设置卡片；它关掉时不注册状态源，徽标上就没有这一项。详见 [docs/facet-protocol.md](docs/facet-protocol.md) 的「显隐归谁」。
+
+---
+
+## 搭档插件（可选）
+
+| 插件 | 折叠徽标里多出什么 | 安装 |
+|---|---|---|
+| [dsh-later](https://github.com/dsh-plugin-collection/dsh-later) | 组内定时任务（时钟图标；颜色档位与文案由 dsh-later 决定） | 公共 npm |
+| `dsh-gitea-dispatch` | 组内等待评审的 PR（沙漏图标；颜色档位与文案由 dsh-gitea-dispatch 决定） | 未发布到公共 npm，见其仓库说明 |
+
+两个都不装，本插件照常工作。等待评审图标的数据完全来自 `dsh-gitea-dispatch` 自己注册的 facet，本插件不替它维护文案或色档。
 
 ---
 
@@ -182,17 +140,42 @@ dsh plugin --profile web remove dsh-group-status
 
 | 项 | 值 |
 |---|---|
-| DSH 内核 | 声明 `>=0.2.1-rc.2 <0.3.0-0`；实测 `0.2.1-rc.2` / `rc.3` / `rc.4` 全绿 |
-| peer 依赖 | `@deepseek-ai/cordis ~4.0.5` + 12 个 `@deepseek-ai/dsh-*`，范围 `^0.2.1-rc.2` |
-| 上游基线 | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`（源码已 vendored 进本仓库 `src/`）|
-| 安装形态 | fork 覆盖包：同槽位注册 + `cordis.patch.yml` 禁用官方行 |
-| 可选搭档 | dsh-later（定时任务摘要）、dsh-gitea-dispatch（等待评审摘要）|
+| DSH 内核 | `engines.dsh: >=0.2.1-rc.2 <0.3.0-0` |
+| 已验代次 | `0.2.1-rc.2` / `rc.3` / `rc.4`（三代门禁、冷启动装配、类型检查与全部用例通过；rc.2 上另做过真 GUI 验收） |
+| peer 依赖 | `@deepseek-ai/cordis ~4.0.5` + 12 个 `@deepseek-ai/dsh-*`（范围 `^0.2.1-rc.2`） |
+| 上游基线 | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`（源码 vendored 进本仓库 `src/`） |
 
-peer 里那 12 条**不是元数据**：≤0.2.0 的内核不读 `engines.dsh`，只按 `@deepseek-ai/dsh*` peer 的范围判兼容。不逐条声明时，0.2.0 会把本包判成「兼容」并装进去 —— 而那一代没有 `@deepseek-ai/dsh-api-remote-access`，客户端 `inject` 的 `remoteAccess` 永远拿不到，fiber 永久 pending，`uiWorkspace` 不再被提供，`ui-sidebar` / `ui-conversation` / `ui-chat` 等 12 条一起不激活，**整页 "Failed to load plugins"，用户失去整个侧栏**。声明之后，0.2.0-rc.2 实测是内核直接 `skipping profile bundle`，宿主不受损；而 0.2.1 起 `engines.dsh` 命中即返回、peer 不参与判定，窗口内代次不受影响。
+`rc.4` 的**行为面**相对基线有漂移（空白会话复用、草稿初始化语义），本包的 fork 仍按基线代次走，所以那些改进到不了用户；能跑不等于行为一致，逐条差异与触发条件记在 [docs/upgrading.md](docs/upgrading.md) 的「上游代次跟踪」。
 
-上游一换代就得按[升级手册](./docs/upgrading.md) rebase 一次；上游改槽位名、组件签名或上下文契约时，本包不会自动跟上。
+peer 里那 12 条不是元数据：不读 `engines.dsh` 的旧内核只按 peer 范围判兼容，漏声明会让旧代次把本包装进去并整页失败。因果与实测记在 [docs/upgrading.md](docs/upgrading.md)。
 
-其中**会静默失效**的那部分（我们认的待处理 kind 集合、我们从宿主读的两个状态事实）有守卫兜着：`tests/host-pending-kinds.node.test.mjs` 直接读锁定版宿主的实现来比对，宿主一改就红；人看的版本是 `pnpm check-upstream`（加 `--latest` 还能查 npm 上已发布的最高版）。
+---
+
+## 给第三方插件作者：注册一个状态源
+
+折叠徽标可以显示别的插件的状态，方向是反的：**状态所有者把事实注册进来**，本插件的聚合与渲染路径不认识任何具体来源。
+
+```js
+const gs = require('dsh-group-status/client')
+const unregister = gs?.registerGroupStatusFacet?.({
+  protocol: gs.GROUP_STATUS_FACET_PROTOCOL_VERSION,
+  id: 'my-plugin.review',        // '<包名>.<状态名>'
+  subscribe: store.subscribe,    // 外部存储面，不是 React hook
+  getSnapshot: store.getSnapshot,
+  fold: (snapshot, sessionIds, now) => ({ count, tone, pulse, data }),
+  label, renderIcon, order,      // 可选：文案、图标、次序归提供方
+})
+ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
+```
+
+- 只交 `protocol` / `id` / `subscribe` / `getSnapshot` / `fold` 五项就能显示：`N 需要关注` 加一枚按色档取色的通用点，内部 id 不会念给用户。
+- 图标与文案归提供方：这个状态长什么样、超时该静止还是该闪，是提供方的知识。
+- `fold` 交结构化 `data` 而不是文本，因为折叠的父分组要覆盖整棵子树、同名折果需要再合并；文本合并不了。
+- 本插件未安装或未启用时 `require` 抛错，捕获该异常即可。
+- 同 id 冲突由来源决胜、与注册顺序无关：状态所有者恒胜代管者。
+- 跨插件**值导入**在本项目走不通（客户端 bundle 是自包含的闭包工厂），所以提供方只用 `require` 拿到的运行时符号，不 `import` 本包的类型。
+
+完整契约、`FacetFold` 逐字段、缺省合并规则、生命周期与降级、版本规则见 [docs/facet-protocol.md](docs/facet-protocol.md)。为什么这里是 `subscribe` / `getSnapshot` 而不是 React hook，也在那份文档里。
 
 ---
 
@@ -201,31 +184,51 @@ peer 里那 12 条**不是元数据**：≤0.2.0 的内核不读 `engines.dsh`�
 ```sh
 pnpm install
 pnpm build        # tsc 类型检查 + tsdown 打包 → lib/
-pnpm watch        # 监听 src/ 自动重建（改完仍需重启 dsh web，侧栏是整包替换）
-pnpm test         # = test:node（node --test，27 用例）+ test:spec（vitest + jsdom，165 用例）
-pnpm test:spec    # 只跑上游 spec 套件
+pnpm watch        # 监听 src/ 自动重建（仍需重启 dsh web）
+pnpm test         # test:node（node --test，49 用例）+ test:spec（vitest + jsdom，183 用例）
+pnpm test:spec    # 只跑 spec 套件
+pnpm check-upstream   # 上游代次跟踪（加 --latest 查 npm 已发布的最高版）
 ```
 
-`tests/` 是上游测试副本，外加本仓库自己的 [tests/group-status.client.spec.ts](tests/group-status.client.spec.ts)——它覆盖折叠聚合本身（计数、待处理类互斥、子智能体、空白/归档跳过、跨插件来源）。
+### 本机开发安装
 
-上游另有 7 个 spec 只能在 DSH monorepo 里跑：它们要么依赖 `dsh-client-test-runtime` 对**未发布源码**的深导入，要么从已发布的 `…/client` 产物里取运行期值、而那个闭包要求宿主预载整套依赖。本地在 [vitest.config.ts](vitest.config.ts) 顶部显式跳过了它们，原因逐条写在文件里——**不要用假实现把它们点亮**，那只会测试假实现。
+改代码时不必反复发包，用 link 挂进本机 profile：
+
+```bash
+git clone https://github.com/dsh-plugin-collection/dsh-group-status.git
+cd dsh-group-status
+pnpm install && pnpm build
+dsh plugin --profile web add "link:$PWD"
+```
+
+`pnpm watch` 监听 `src/` 自动重建，重建后同样要重启 `dsh web`。
+
+`tests/` 的上游副本之外，本仓库自己的用例覆盖折叠聚合（计数、待处理类互斥、子智能体、空白/归档跳过、外部来源登记与注销、悬停文案）。另有 9 个上游 spec 只能在 DSH monorepo 里跑，原因逐条写在 [vitest.config.ts](vitest.config.ts) 顶部。
+
+README 里会随代码漂移的可数事实（版本徽章、设置项字段与默认值、用例数、不该出现的内部措辞、引用可达性）由 [tests/readme-facts.node.test.mjs](tests/readme-facts.node.test.mjs) 看着。
+
+宿主契约里会**静默失效**的那部分（本插件认的待处理 kind 集合、从宿主读的两个状态事实）由 [tests/host-pending-kinds.node.test.mjs](tests/host-pending-kinds.node.test.mjs) 对着锁定版宿主实现比对，宿主一改就红。
 
 ---
 
 ## 已知限制
 
-- **上游换代必须手工 rebase**：本包 vendored 了上游源码（`src/`、`tests/`），用的不是稳定公共 API；上游动槽位名、组件签名或上下文契约时要跟着改，步骤见[升级手册](./docs/upgrading.md)。
-- **每次状态变更多一轮全量测量**：聚合计数与展开态共用同一份派生；为了让折叠的父级算得准，**展开的分组同样要被测量**（它自己不画徽标，但祖先要用它的数字）。超大分组（数百会话）每次状态变更多一轮 traverse + 一次沿树上卷，与展开渲染同量级，可接受；该成本由 `tests/group-status.client.spec.ts` 的 perf 用例守住。
-- **状态不自己产生**：跨插件图标完全依赖 dsh-later / dsh-gitea-dispatch 暴露的摘要 API，它们不装就只是没有那两个图标，不影响本体。
-- **数字比明细粗**：定时任务按「组内有定时任务的会话数」计，不按任务条数累计；具体条数在 dsh-later 自己的界面上看。
-- **只覆盖侧栏折叠态**：本插件只加聚合显示，不改会话状态机、不改行内 badge 的判据。
+- **上游换代要手工 rebase**：本包 vendored 了上游源码，用的不是稳定公共 API；上游改槽位名、组件签名或上下文契约时要跟着改，步骤见 [docs/upgrading.md](docs/upgrading.md)。
+- **每次状态变更多一轮全量测量**：聚合计数与展开态共用同一份派生，折叠的父分组要算得准，展开的分组同样得被测量。超大分组（数百会话）的这一轮 traverse 与上卷成本由 `tests/group-status.client.spec.ts` 的性能用例守住。
+- **外部状态图标完全依赖提供方**：搭档插件不装就只是少那两个图标，不影响本体；提供方文案缺失时退回通用「需要关注」。
+- **数字比明细粗**：外部来源按它自己报的条数计入，本插件不重新定义别人的计数口径。
+- **只覆盖侧栏折叠态**：不改会话状态机，不改会话行的状态判据。
+- **倒计时精度到分钟**：徽标只在提供方 store 通知时重渲染，秒级读数会停在旧值上不再更新。
 
 ---
 
-## 技术文档
+## 文档
 
-- [上游升级手册](./docs/upgrading.md) — 基线怎么来的、本地改了哪几处、上游换代时怎么 rebase 与验证
-- [跨插件摘要模板](./src/client/cross-plugin-summary.ts) — 提供方（provider）侧骨架本体，文件头就是它的设计说明与「复制、不要 import」的实测依据
+- [docs/facet-protocol.md](docs/facet-protocol.md)：跨插件状态源协议（提供方必读）
+- [docs/upgrading.md](docs/upgrading.md)：上游基线、本地改动清单、换代 rebase 与验证、上游代次跟踪
+- [src/client/cross-plugin-summary.ts](src/client/cross-plugin-summary.ts)：提供方侧骨架，文件头即设计说明
+
+以上两份文档目前只有中文版本。
 
 ## 许可
 

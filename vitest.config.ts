@@ -15,7 +15,7 @@
  * 4. `import.meta.url` — the one spec that reads sibling files off disk gets the
  *    served URL under Vite, which `new URL()` rejects; hand it the file URL.
  *
- * Seven specs are skipped (`MONOREPO_ONLY_SPECS`), in two groups — both are
+ * Nine specs are skipped (`MONOREPO_ONLY_SPECS`), in two groups — both are
  * properties of the published packages, not of this repository, and neither is
  * fixable by stubbing without turning the assertion into a test of the stub:
  *

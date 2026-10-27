@@ -6,6 +6,26 @@
 
 ## 未发布
 
+- **docs** 中英两份 README 按「装 → 认徽标 → 配 → 出问题查什么」重排：安装回到使用之前，新增
+  「徽标不出现时」排错表（没重启、内核在窗口外、四档计数全为 0、低于 `countThreshold`、搭档
+  插件未注册），并补上此前只写在代码注释里的两条用户可见事实：计数超过 99 显示 `99+`、外部
+  来源之间的次序由各方的 `order` 决定。本机 `link:` 安装从用户路径移进「开发」。
+  同时修掉与实现不符的陈述：设置项是 5 个（曾写「7 个」）、外部来源在本页没有专用开关
+  （同篇另一处曾说「两个来源各有一个专用设置项」）、Node 与 spec 用例数按实跑值、跳过的上游
+  spec 是 9 个（曾写 7）、`status.waitingReview` / `status.scheduled` 等 5 个文案键已随
+  `legacy/` 删除不再列为本包新增、`rc.4` 的用例通过不等于行为一致（差异见升级手册）。
+- **docs** 一处事实一个家：facet 契约细节归 [`docs/facet-protocol.md`](docs/facet-protocol.md)，
+  README 只留方向、最小注册示例与指针；12 条 peer 的因果链归 [`docs/upgrading.md`](docs/upgrading.md)
+  新增的「兼容声明为什么长这样」一节，README 兼容性段只给结论。
+- **test** 新增 [`tests/readme-facts.node.test.mjs`](tests/readme-facts.node.test.mjs)（8 例）：
+  README 的版本徽章 == `package.json` 的 `version`；设置表的字段与默认值 == `src/index.ts` 的
+  `Config`；用例数 == 实跑数量（Node 侧静态计数再用 `node --test` 交叉验证，Vitest 侧读 JSON
+  reporter）；用户文档不含工单号、已删除的实现名与内网地址；相对引用存在且图片落在 `files`
+  白名单内；`extract-notes.mjs` 依赖的特性小节仍在。
+- **chore** `package.json`：`description` 不再把「定时任务」「等待评审」列成本插件的档位
+  （它们是提供方注册的状态源，本包不含对应字段）；`files` 白名单补 `docs`，此前发布 tarball 里
+  没有截图与两份文档，README 的图片在包内视角是断链。
+
 ## 0.5.1 — 2026-10-27
 
 - **refactor** 会话列表面板拆成四个组件文件：`rows/WorkspaceBrowser.tsx` 从 1562 行降到 685 行，
