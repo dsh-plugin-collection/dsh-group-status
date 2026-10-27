@@ -137,6 +137,17 @@
 - 本插件**不代管任何来源**：不要为了「方便」重新引入 `legacy/` 式适配器，两家现有接入方各自注册（见 [`facet-protocol.md`](facet-protocol.md) 的迁移史一节)。
 - provider 侧模板的导出面（`createSummaryStore` / `createSummaryRegistry` / `summarizeGroup` / `mapEquals` / `entryFor` / `normalizeSessionId` / `defaultCanPoll`）——它被别的插件**复制**走，改名会静默影响它们的调用点；设计说明与「复制、不要 import」的实测依据写在 [`src/client/cross-plugin-summary.ts`](../src/client/cross-plugin-summary.ts) 文件头
 
+## 兼容声明为什么长这样（12 条 peer 不是元数据）
+
+README 只给结论（声明 `>=0.2.1-rc.2 <0.3.0-0`，另有 12 条 peer），机制记在这里。
+
+peer 里那 12 条**不是元数据**：≤0.2.0 的内核不读 `engines.dsh`，只按 `@deepseek-ai/dsh*` peer 的范围判兼容。不逐条声明时，0.2.0 会把本包判成「兼容」并装进去 —— 而那一代没有 `@deepseek-ai/dsh-api-remote-access`，客户端 `inject` 的 `remoteAccess` 永远拿不到，fiber 永久 pending，`uiWorkspace` 不再被提供，`ui-sidebar` / `ui-conversation` / `ui-chat` 等 12 条一起不激活，**整页 "Failed to load plugins"，用户失去整个侧栏**。声明之后，0.2.0-rc.2 实测是内核直接 `skipping profile bundle`，宿主不受损；而 0.2.1 起 `engines.dsh` 命中即返回、peer 不参与判定，窗口内代次不受影响。
+
+**这条链上有两个静默点**，所以换代时两处都要人看着：
+
+- 漏写一条 peer 不会立刻报错，只会在**旧内核**上炸，而旧内核根本不在 CI 矩阵里；
+- `engines.dsh` 与 peer 下界必须同一条线（`tests/artifacts.node.test.mjs` 锁住），只改一边等于声明面失效。
+
 ## 上游代次跟踪（2026-10-27 实测）
 
 本包声明 `engines.dsh: >=0.2.1-rc.2 <0.3.0-0`，peer 侧另有 12 条 `@deepseek-ai/dsh-*`（`^0.2.1-rc.2`，
