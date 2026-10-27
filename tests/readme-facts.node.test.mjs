@@ -130,7 +130,9 @@ const staticNodeTests = (files) =>
   }, 0)
 
 /**
- * 跑一次 node --test，读汇总里的 `# tests N`。
+ * 跑一次 node --test，读汇总里的 `# tests N`。reporter 必须显式钉成 tap：默认 reporter 随
+ * 环境变（本地管道是 tap，CI runner 是 spec，汇总行变成 `ℹ tests N`），不钉住就等于看守
+ * 只在开发机上有效。
  *
  * 必须剥掉 `NODE_TEST_CONTEXT`：本文件自己就是被 `node --test` 拉起来的子进程，那个变量
  * 会一路传给我们的孙进程，而测试运行器在它存在时**不打印汇总行**（实测 stdout 里
@@ -138,7 +140,7 @@ const staticNodeTests = (files) =>
  */
 const runNodeTests = (files) => {
   const { NODE_TEST_CONTEXT, ...env } = process.env
-  const out = spawnSync(process.execPath, ['--test', ...files.map((f) => join('tests', f))], {
+  const out = spawnSync(process.execPath, ['--test', '--test-reporter=tap', ...files.map((f) => join('tests', f))], {
     cwd: rootDir,
     encoding: 'utf8',
     timeout: 120_000,
