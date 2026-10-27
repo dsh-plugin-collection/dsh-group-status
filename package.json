@@ -1,7 +1,7 @@
 {
   "name": "dsh-group-status",
   "version": "0.5.1",
-  "description": "DSH 侧栏折叠分组聚合徽标：收起的文件夹行显示进行中/待审批/已完成/定时任务/等待评审的聚合状态，带数字与悬停明细。",
+  "description": "DSH 侧栏折叠分组的聚合状态徽标：分组收起时在文件夹行显示组内会话的待审批、进行中与已完成状态，并合并其他插件注册的状态源，带计数与悬停明细。",
   "keywords": [
     "dsh",
     "dsh-plugin",
@@ -127,6 +127,7 @@
     "icon.svg",
     "lib",
     "cordis.patch.yml",
+    "docs",
     "README.md",
     "README.en.md",
     "LICENSE",
