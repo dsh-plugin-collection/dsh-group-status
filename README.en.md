@@ -87,13 +87,15 @@ This package changes no file inside the published upstream package: it registers
 
 This plugin draws three session state tiers:
 
-| Glyph | Meaning | Color source |
-|---|---|---|
-| Yellow dot | The group has a session awaiting approval, plan review, or an answer | `StateDot` `warning`, same as session rows |
-| Spinner | The group has a running session (including running subagents) | `StateDot` `ongoing` |
-| Green dot | The group has a completed session that is still unread | `StateDot` `done`, same as session rows |
+| Icon | Shape | Meaning | Color source |
+|---|---|---|---|
+| <img src="docs/media/glyph-pending.svg" width="10" height="10" alt=""/> | Yellow dot | The group has a session awaiting approval, plan review, or an answer | `StateDot` `warning`, same as session rows |
+| <img src="docs/media/glyph-running.svg" width="14" height="14" alt=""/> | Spinner | The group has a running session (including running subagents) | `StateDot` `ongoing` |
+| <img src="docs/media/glyph-completed.svg" width="10" height="10" alt=""/> | Green dot | The group has a completed session that is still unread | `StateDot` `done`, same as session rows |
 
-External status sources supply their own glyph and color tier. This plugin decides neither their shape nor whether they pulse.
+The icons are reconstructions: geometry follows `StateDot` (a 6px core inside a 10px slot, and a 14px ring with an arc of about 72 degrees), colors are sampled from the two real screenshots above, both taken in the dark theme. [scripts/make-badge-glyphs.mjs](scripts/make-badge-glyphs.mjs) generates them. In the UI the spinner keeps rotating (one turn per 1.5s), so a static image can only be one frame. The running UI is the authority on colors; this package keeps no color table of its own.
+
+External status sources supply their own glyph and color tier. This plugin decides neither their shape nor whether they pulse, so those two glyphs are not reconstructed here: they belong to the plugins that own them.
 
 - **Count** = pending + running (including running subagents) + completed + whatever each external source reports. Above 99 it shows `99+`; below `countThreshold` the number is omitted and only the dots are drawn.
 - **Order**: pending, running, external sources, completed. The relative order among external sources comes from their own `order`. Hover details use the same order as the dots, one line per tier, for example `1 waiting for answer · 1 running`. The waiting-review line carries the PR number and remaining time, supplied by its owner.
@@ -183,7 +185,7 @@ The full contract, every `FacetFold` field, the default merge, lifecycle and deg
 pnpm install
 pnpm build        # tsc type check + tsdown bundle → lib/
 pnpm watch        # rebuild on src/ changes (a dsh web restart is still required)
-pnpm test         # test:node (node --test, 49 cases) + test:spec (vitest + jsdom, 183 cases)
+pnpm test         # test:node (node --test, 50 cases) + test:spec (vitest + jsdom, 183 cases)
 pnpm test:spec    # spec suite only
 pnpm check-upstream   # upstream generation tracking (add --latest for the highest published version)
 ```
