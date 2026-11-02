@@ -83,7 +83,7 @@
 
 ## 测试基线
 
-`pnpm test` = `test:node`（`npm run types && node --test`，4 个文件 / 37 用例）→ `test:spec`（`vitest run`，jsdom，9 个文件 / 170 用例）。合计 **207 用例**：
+`pnpm test` = `test:node`（`npm run types && node --test`，50 用例）→ `test:spec`（`vitest run`，jsdom，14 个文件 / 191 用例）。README 里的这两个数字由 `tests/readme-facts.node.test.mjs` 对齐实跑值看守。下表列出与 `navigation.ts`、聚合与设置相关的文件（部分动态生成的循环用例不计入静态表）：
 
 | 文件 | 来源 | 覆盖 |
 |---|---|---|
@@ -98,9 +98,10 @@
 | `tests/badge-settings.client.spec.ts` | **本仓库** | 设置源、默认值回落与引用稳定 |
 | `tests/badge-labels.client.spec.ts` | **本仓库** | 徽标文案、明细顺序、来源图标与脉冲规则 |
 | `tests/badge-settings-card.client.spec.tsx` | **本仓库** | 设置字段规格与插件详情页卡片接线 |
+| `tests/navigation-draft-blank.client.spec.ts` | **本仓库** | Issues #43 前瞻适配：空白复用的 preset 感知（无 preset 请求跳过列 preset 的空白、命名 preset 命中同值或无 preset 空白、全部不匹配时新建），以及 `startSession` 草稿意图判定（`whenDraftExists` 单独出现也初始化草稿、`prompt`/`clearPreviousDraft: true` 照旧、`clearPreviousDraft: false` 与仅 `agentPreset` 不碰草稿）。纯对象 stub 驱动真实 `UiWorkspaceService`，运行期只依赖 `cordis`（8 用例）|
 | `tests/group-status.client.spec.ts` | **本仓库** | 折叠聚合：计数、待处理类互斥、子智能体、空白/归档跳过、定时任务与等待评审聚合、未安装时降级；**多层聚合**（展开的中间层必须计入折叠祖先、任意深度、父子环不死循环）；聚合路径全折叠 / 全展开两侧的 perf 护栏。注意 `groupOf()` 走的是真实管线，**不要**再在测试里手工赋 `liveStatus`——那样测试只能证明副本自己 |
 
-**7 个上游 spec 被显式跳过**（`vitest.config.ts` 顶部的 `MONOREPO_ONLY_SPECS`），因为它们在独立仓库里无解：
+**9 个上游 spec 被显式跳过**（`vitest.config.ts` 顶部的 `MONOREPO_ONLY_SPECS`），因为它们在独立仓库里无解：
 
 - `rows` / `workspace-browser` / `workspace-picker`：`@deepseek-ai/dsh-client-test-runtime` 深导入 `dsh-client-ui-renderer`、`dsh-api-session-controller` 的**源码**（`…/src/client/bind.ts`、`scoped-slots.tsx`、`scope.ts`）。这些包不发布 `src/`（`0.2.1-alpha` 也没有），产物里也没有导出 `bindSnapshotSelector` / `createSlotRenderer`。
 - `apply` / `shortcuts` / `workspaces-service` / `session-actions` / `host-home-staleness` / `rename-assembly`：从已发布的 `…/client` 产物里取**运行期值**（`SlotRegistry`、`LocaleRuntime`、`LayoutController`、各种 `*Error`）。这些产物是闭包工厂，`require` 图假定宿主已预载外部依赖——例如 `dsh-client-ui-primitives` 自己**一个依赖都不声明**，却 require 了 shiki / katex / micromark 全家桶。要在本地跑就得把 DSH 应用整棵依赖树装成插件 devDependencies。
@@ -148,6 +149,13 @@ peer 里那 12 条**不是元数据**：≤0.2.0 的内核不读 `engines.dsh`�
 - 漏写一条 peer 不会立刻报错，只会在**旧内核**上炸，而旧内核根本不在 CI 矩阵里；
 - `engines.dsh` 与 peer 下界必须同一条线（`tests/artifacts.node.test.mjs` 锁住），只改一边等于声明面失效。
 
+**预发布版匹配不上 caret 范围，这是 semver 规则而不是破口**（Issues #43 §3，2026-11-02 复核）：12 条
+peer 的 `^0.2.1-rc.2` 按预发布规则**不匹配** `0.2.2-alpha.x`（预发布只对同 `[major,minor,patch]` 元组的
+范围可见），但 `0.2.2` **正式版**落在 `>=0.2.1-rc.2 <0.3.0` 里，会自动纳入。所以 alpha 线提前验证时才需要
+临时把范围写成 `^0.2.1-rc.2 || ^0.2.2-alpha.2`，**这类临时改动不入仓**：`tests/artifacts.node.test.mjs`
+锁的就是 peer == `^` + `engines.dsh` 下界这一条不变式，commit 半个 `||` 范围会让声明面与守卫互相说谎，
+而"支持 0.2.2-alpha.x"在实测通过之前也不该被写进任何兼容声明（未判定不是绿）。
+
 ## 上游代次跟踪（2026-10-27 实测）
 
 本包声明 `engines.dsh: >=0.2.1-rc.2 <0.3.0-0`，peer 侧另有 12 条 `@deepseek-ai/dsh-*`（`^0.2.1-rc.2`，
@@ -167,21 +175,25 @@ rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / �
 所以 `src/host-contract.ts` 那道守卫在 rc.4 上是绿的，**不需要跟着改**。
 
 **但行为面漂了，漂的正是本仓库 fork 的那块**。rc.4 在 `UiWorkspaceService` 上改了三处，
-`src/client/navigation.ts` 是它的 fork，目前仍是 rc.2 写法：
+`src/client/navigation.ts` 是它的 fork，此前仍是 rc.2 写法（2026-10-27 登记；2026-11-02 按 Issues #43
+对 `0.2.2-alpha.2` 复核后更新下表）：
 
-| rc.4 的改动 | `navigation.ts` 现状 |
+| rc.4 的改动 | `navigation.ts` 现状（2026-11-02） |
 |---|---|
-| 删掉 `connectBlank` 里的 `if (reuse === undefined) return this.sessions.create({ workspaceId })` 早退 | 第 208 行仍是旧写法 |
-| 空白会话复用改为 **preset 感知**（比较 `summary.projectionValues?.agentPreset`） | 只在 inflight 里比 preset，复用候选未比对 |
-| 草稿初始化 `clearPreviousDraft: boolean` → `whenDraftExists: 'replace' \| 'keep'`（旧字段降级为别名） | 第 327 行仍是旧语义 |
+| 删掉 `connectBlank` 里的 `if (reuse === undefined) return this.sessions.create({ workspaceId })` 早退 | 未跟：`connectWorkspace` 恒传 `{}`，该早退不可达，无行为差 |
+| 空白会话复用改为 **preset 感知**（比较 `summary.projectionValues?.agentPreset`） | **已对齐**（Issues #43）：`createInWorkspace` 挑选复用候选时跳过列出其它 preset 的空白；无 preset 的空白对任何请求仍可复用。`0.2.2-alpha.2` 的定稿措辞与此一致 |
+| 草稿初始化 `clearPreviousDraft: boolean` → `whenDraftExists: 'replace' \| 'keep'`（旧字段降级为别名；`0.2.2-alpha.2` 定稿为三态 `replace \| append \| keep`） | **已对齐**（Issues #43）：`StartSessionOptions` 前瞻声明三态并原样透传给 `requestDraftInitialization`（旧宿主忽略、新宿主生效）；`initializeDraft` 判定同时识别 `prompt` / `clearPreviousDraft: true` / `whenDraftExists`，两字段语义分叉后导航层不再漏判 |
 
 这件事**不会**自动修好：`cordis.patch.yml` 把官方 `ui-workspace` 行 `disabled: true`，`uiWorkspace`
 由本插件自己提供 —— 所以在 rc.4 上跑的时候，**rc.4 的这三处改进根本到不了用户**，用户拿到的是 fork 里
 那份 rc.2 行为。**能跑 ≠ 行为一致**，这是"全绿"之外必须单独记一笔的差别。
 
-**本仓库的约定**：容器服务（`navigation.ts`）以**基线代次**为准，不逐 rc 跟。理由：这块没有任何本地
+**本仓库的约定**：容器服务（`navigation.ts`）以**基线代次**为准，不逐 rc 跟。此前的理由：这块没有任何本地
 用例覆盖（`tests/workspaces-service.client.spec.ts` 在 `MONOREPO_ONLY_SPECS` 里，从未在 CI 跑过），
-改 inflight 复用与草稿保留语义无法证明没坏，而收益只是三处细节 UX。
+改 inflight 复用与草稿保留语义无法证明没坏，而收益只是三处细节 UX。该前提在 Issues #43 后**已经不成立**：
+新增的 `tests/navigation-draft-blank.client.spec.ts` 用纯对象 stub 驱动真实 `UiWorkspaceService`
+（运行期只依赖 `cordis`，本仓库可跑），preset 感知复用与草稿意图判定两侧共 8 用例看守。此后逐 rc 跟改
+按这份形状补用例即可；但**前瞻适配不等于基线迁移**，升基线仍按下面的触发清单与迁移步骤走。
 
 **什么时候必须动**（任一触发即升基线，别拖）：
 

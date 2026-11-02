@@ -29,10 +29,21 @@ interface InflightConnection {
   readonly attempt: Promise<SessionId>
 }
 
-/** Content preparation and Agent preset for the Session a Workspace flow opens. */
+/**
+ * Content preparation and Agent preset for the Session a Workspace flow opens.
+ *
+ * `whenDraftExists` is the tri-state draft policy the kernel `0.2.2` line adds to
+ * `DraftInitializationOptions` (replacing the boolean `clearPreviousDraft`, which stays
+ * supported). It is re-declared here so callers can pass it while this plugin still
+ * type-checks against pre-0.2.2 kernels; the field rides through to
+ * `requestDraftInitialization` verbatim, where a 0.2.2 Host honors it and an older
+ * Host ignores it.
+ */
 export interface StartSessionOptions extends DraftInitializationOptions {
   /** Agent preset the Session runs; the Host default when omitted. */
   readonly agentPreset?: string
+  /** How the Host treats an unsent draft already on the target Session. */
+  readonly whenDraftExists?: 'replace' | 'append' | 'keep'
 }
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
@@ -70,20 +81,24 @@ export interface UiWorkspace {
     options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration'>,
   ): Promise<SessionId>
   /**
-   * Resolve the Session for a new conversation in a Workspace: the Host reuses
-   * the first listed blank member while it is reusable and otherwise creates one,
-   * under the requested preset or the Host default.
+   * Resolve the Session for a new conversation in a Workspace: navigation names the first
+   * reusable blank member — skipping blanks that list a preset other than a requested one —
+   * while it is reusable and otherwise creates one, under the requested preset or the Host
+   * default. The resolved blank keeps its unsent draft; `startSession` decides the draft's
+   * fate through the draft options.
    * @param workspaceId - target Workspace.
    * @param options - choices for the created or reused Session.
    * @returns a Session already addressable through the Session Controller.
    */
   connectWorkspace(workspaceId: WorkspaceId, options?: Pick<StartSessionOptions, 'agentPreset'>): Promise<SessionId>
   /**
-   * Create a fresh Session, or reuse a blank when preparing an explicit draft. A creation the Host
-   * refuses is shown through the Workspace notice and leaves the selection as it was.
+   * Create a fresh Session, or reuse a blank when preparing an explicit draft. A creation the
+   * Host refuses is shown through the Workspace notice and leaves the selection as it was.
    * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
-   * @param options - initial content and the reused blank's preset; existing text or attachments
-   * are preserved unless clearPreviousDraft is true.
+   * @param options - initial content and the reused blank's preset. New Session returns to the
+   * blank `connectWorkspace` resolves; the fate of that blank's unsent draft is decided by the
+   * draft options (`clearPreviousDraft`, and on the kernel 0.2.2 line `whenDraftExists`), not
+   * unconditionally preserved.
    */
   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void
   /**
@@ -225,8 +240,15 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const sessions = this.sessions.list.getSnapshot()
     const blank = sessions.ids.find((id) => {
       const summary = sessions.byId[id]
-      return summary !== undefined && summary.blank && summary.cwd === workspace.path
-        && workspace.sessionIds.includes(id) && !archived.includes(id)
+      if (summary === undefined || !summary.blank || summary.cwd !== workspace.path) return false
+      if (!workspace.sessionIds.includes(id) || archived.includes(id)) return false
+      // Kernel 0.2.2 reuse rule: a blank that lists a preset is reusable only for a
+      // request naming that same preset; a preset-less blank stays reusable by any
+      // request. Listed projection values are cached hints, so a blank whose preset
+      // has not surfaced yet may still be offered — the Host then applies the
+      // requested preset (or its default) on the reused Session.
+      const recorded = summary.projectionValues?.agentPreset
+      return typeof recorded !== 'string' || recorded === options.agentPreset
     })
     return this.createNamed({
       workspaceId: workspace.workspaceId,
@@ -322,9 +344,17 @@ class UiWorkspaceService extends Service implements UiWorkspace {
 
   startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void {
     const { agentPreset, ...draft } = options ?? {}
+    // `draft` keeps its inferred shape (StartSessionOptions minus agentPreset, including
+    // the 0.2.2 `whenDraftExists`); it reaches the Host verbatim through prepareDraft.
     const draftOptions: DraftInitializationOptions | undefined = options === undefined ? undefined : draft
+    // Any draft-shaping intent initializes the draft: initial content, the boolean
+    // clear, or the 0.2.2 tri-state policy. Recognizing `whenDraftExists` keeps the
+    // decision from missing entries once the two fields diverge (e.g. an append
+    // request with neither `prompt` nor `clearPreviousDraft`).
     const initializeDraft = draftOptions !== undefined
-      && (draftOptions.prompt !== undefined || draftOptions.clearPreviousDraft === true)
+      && (draft.prompt !== undefined
+        || draft.clearPreviousDraft === true
+        || draft.whenDraftExists !== undefined)
     const workspace = this.workspaces.list.getSnapshot()
     const sessions = this.sessions.list.getSnapshot()
     const current = this.mainReference?.sessionId

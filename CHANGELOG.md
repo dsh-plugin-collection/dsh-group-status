@@ -6,6 +6,20 @@
 
 ## 未发布
 
+- **fix** 内核 `0.2.2` 线前瞻适配（Issues #43，经 `0.2.2-alpha.2` 发布产物对照，无破坏性变更）：
+  ① `startSession` 的草稿意图判定不再只看 `prompt` / `clearPreviousDraft: true` —— `whenDraftExists`
+  （`replace | append | keep`，`DraftInitializationOptions` 在 0.2.2 新增的三态）单独出现时同样初始化
+  草稿，并把两代字段一并原样透传给 `requestDraftInitialization`（旧宿主忽略、新宿主生效），两字段语义
+  分叉后导航层不再漏判；② 空白会话复用改为 preset 感知（与 rc.4→alpha.2 定稿措辞一致）：列出其它
+  preset 的空白不再被无 `agentPreset` 的请求复用，命名 preset 的请求只命中列同值或无 preset 的空白；
+  ③ peer 的 `^0.2.1-rc.2` 按 semver 预发布规则匹配不到 `0.2.2-alpha.x`（`0.2.2` 正式版会自动纳入），
+  alpha 线提前验证需临时补 `|| ^0.2.2-alpha.2` 且**不入仓** —— 不变式与原因见升级手册「兼容声明
+  为什么长这样」一节。新增本仓库 spec `tests/navigation-draft-blank.client.spec.ts`（8 用例，纯对象
+  stub 驱动真实 `UiWorkspaceService`）看守 ①②；spec 实跑数 183 → 191，README 数字同步。
+- **docs** 升级手册「上游代次跟踪」的漂移表按 2026-11-02 复核更新：两处已对齐、一处（`connectBlank`
+  的不可达早退）确认无行为差不跟；「约定」一节的前提修正 —— `navigation.ts` 从此有本地用例覆盖，
+  逐 rc 跟改不再受「无法证明没坏」约束，但升基线仍按触发清单走。「测试基线」的合计数改为可核实的
+  实跑值，跳过的上游 spec 数 7 → 9（与 `vitest.config.ts`、README 对齐）。
 - **docs** 中英两份 README 按「装 → 认徽标 → 配 → 出问题查什么」重排：安装回到使用之前，新增
   「徽标不出现时」排错表（没重启、内核在窗口外、四档计数全为 0、低于 `countThreshold`、搭档
   插件未注册），并补上此前只写在代码注释里的两条用户可见事实：计数超过 99 显示 `99+`、外部

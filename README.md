@@ -187,7 +187,7 @@ ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
 pnpm install
 pnpm build        # tsc 类型检查 + tsdown 打包 → lib/
 pnpm watch        # 监听 src/ 自动重建（仍需重启 dsh web）
-pnpm test         # test:node（node --test，50 用例）+ test:spec（vitest + jsdom，183 用例）
+pnpm test         # test:node（node --test，50 用例）+ test:spec（vitest + jsdom，191 用例）
 pnpm test:spec    # 只跑 spec 套件
 pnpm check-upstream   # 上游代次跟踪（加 --latest 查 npm 已发布的最高版）
 ```

@@ -185,7 +185,7 @@ The full contract, every `FacetFold` field, the default merge, lifecycle and deg
 pnpm install
 pnpm build        # tsc type check + tsdown bundle → lib/
 pnpm watch        # rebuild on src/ changes (a dsh web restart is still required)
-pnpm test         # test:node (node --test, 50 cases) + test:spec (vitest + jsdom, 183 cases)
+pnpm test         # test:node (node --test, 50 cases) + test:spec (vitest + jsdom, 191 cases)
 pnpm test:spec    # spec suite only
 pnpm check-upstream   # upstream generation tracking (add --latest for the highest published version)
 ```
