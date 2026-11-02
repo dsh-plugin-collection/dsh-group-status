@@ -90,13 +90,14 @@ function items(lines) {
 }
 
 const typeOf = (item) => {
-  // 类型名允许数字：`a11y` / `i18n` 这类会被纯字母正则漏成 other（0.5.1 就发生过）
-  const m = /^-\s+\*\*([a-zA-Z0-9]+)\*\*/.exec(item);
+  // 类型名允许数字（a11y / i18n），也允许 Conventional Commits 的 scope 写法：
+  // `feat(kernel)` 取基础类型 feat —— 否则整条落进 other（dsh-later 1.11.0 就发生过）。
+  const m = /^-\s+\*\*([a-zA-Z0-9]+)(?:\(([a-zA-Z0-9-]+)\))?\*\*/.exec(item);
   return m ? m[1].toLowerCase() : 'other';
 };
 
 /** 只去掉 `- **feat** ` 这个类型前缀，其余文字一字不改。 */
-const stripType = (item) => item.replace(/^-\s+\*\*[a-zA-Z0-9]+\*\*\s*/, '- ');
+const stripType = (item) => item.replace(/^-\s+\*\*[a-zA-Z0-9]+(?:\([a-zA-Z0-9-]+\))?\*\*\s*/, '- ');
 
 /**
  * 把一条 CHANGELOG 条目收成 Release 里的一行：**取条目自带结构里的 `标题：首句`，
@@ -133,7 +134,7 @@ function releaseLine(item) {
     return acc + (CJK.test(a) && CJK.test(b) ? '' : ' ') + cur;
   }, '');
   const line = para
-    .replace(/^-\s+(?:\*\*[a-zA-Z0-9]+\*\*\s*)?/, '')
+    .replace(/^-\s+(?:\*\*[a-zA-Z0-9]+(?:\([a-zA-Z0-9-]+\))?\*\*\s*)?/, '')
     .replace(/\s+/g, ' ')
     .trim();
   const inCode = (t, i) => ((t.slice(0, i).match(/`/g) ?? []).length) % 2 === 1;
