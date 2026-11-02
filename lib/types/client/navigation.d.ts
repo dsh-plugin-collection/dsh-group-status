@@ -7,10 +7,21 @@ import type { DraftInitializationOptions } from '@deepseek-ai/dsh-client-ui-conv
 import type { SessionId } from '@deepseek-ai/dsh-session/types';
 import type { RowToast } from './contract/slots.ts';
 import type { WorkspaceViewStoreActions } from './stores.ts';
-/** Content preparation and Agent preset for the Session a Workspace flow opens. */
+/**
+ * Content preparation and Agent preset for the Session a Workspace flow opens.
+ *
+ * `whenDraftExists` is the tri-state draft policy the kernel `0.2.2` line adds to
+ * `DraftInitializationOptions` (replacing the boolean `clearPreviousDraft`, which stays
+ * supported). It is re-declared here so callers can pass it while this plugin still
+ * type-checks against pre-0.2.2 kernels; the field rides through to
+ * `requestDraftInitialization` verbatim, where a 0.2.2 Host honors it and an older
+ * Host ignores it.
+ */
 export interface StartSessionOptions extends DraftInitializationOptions {
     /** Agent preset the Session runs; the Host default when omitted. */
     readonly agentPreset?: string;
+    /** How the Host treats an unsent draft already on the target Session. */
+    readonly whenDraftExists?: 'replace' | 'append' | 'keep';
 }
 /** Workspace archive and directory operations consumed by Client UI domains. */
 export interface UiWorkspace {
@@ -39,20 +50,24 @@ export interface UiWorkspace {
      */
     forkSession(sessionId: SessionId, onCreated?: (childId: SessionId) => void, options?: Pick<Parameters<ISessions['fork']>[0], 'allowMigration'>): Promise<SessionId>;
     /**
-     * Resolve the Session for a new conversation in a Workspace: the Host reuses
-     * the first listed blank member while it is reusable and otherwise creates one,
-     * under the requested preset or the Host default.
+     * Resolve the Session for a new conversation in a Workspace: navigation names the first
+     * reusable blank member — skipping blanks that list a preset other than a requested one —
+     * while it is reusable and otherwise creates one, under the requested preset or the Host
+     * default. The resolved blank keeps its unsent draft; `startSession` decides the draft's
+     * fate through the draft options.
      * @param workspaceId - target Workspace.
      * @param options - choices for the created or reused Session.
      * @returns a Session already addressable through the Session Controller.
      */
     connectWorkspace(workspaceId: WorkspaceId, options?: Pick<StartSessionOptions, 'agentPreset'>): Promise<SessionId>;
     /**
-     * Create a fresh Session, or reuse a blank when preparing an explicit draft. A creation the Host
-     * refuses is shown through the Workspace notice and leaves the selection as it was.
+     * Create a fresh Session, or reuse a blank when preparing an explicit draft. A creation the
+     * Host refuses is shown through the Workspace notice and leaves the selection as it was.
      * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
-     * @param options - initial content and the reused blank's preset; existing text or attachments
-     * are preserved unless clearPreviousDraft is true.
+     * @param options - initial content and the reused blank's preset. New Session returns to the
+     * blank `connectWorkspace` resolves; the fate of that blank's unsent draft is decided by the
+     * draft options (`clearPreviousDraft`, and on the kernel 0.2.2 line `whenDraftExists`), not
+     * unconditionally preserved.
      */
     startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void;
     /**
