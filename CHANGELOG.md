@@ -6,6 +6,8 @@
 
 ## 未发布
 
+## 0.5.2 — 2026-11-05
+
 - **fix** 内核 `0.2.2` 线前瞻适配（Issues #43，经 `0.2.2-alpha.2` 发布产物对照，无破坏性变更）：
   ① `startSession` 的草稿意图判定不再只看 `prompt` / `clearPreviousDraft: true` —— `whenDraftExists`
   （`replace | append | keep`，`DraftInitializationOptions` 在 0.2.2 新增的三态）单独出现时同样初始化
