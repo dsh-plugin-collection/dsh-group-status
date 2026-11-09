@@ -149,10 +149,14 @@ test('node_modules 里实际解析到的必须是开发依赖声明的那一条'
 test('engines.dsh 必须存在，并覆盖开发依赖那条线', () => {
   const declared = pkg.engines?.dsh
   assert.equal(typeof declared, 'string', 'engines.dsh 缺失：宿主闸门会退回逐条校验 peer，而本包只声明了 cordis——dsh 版本差异根本挡不住')
-  assert.match(
-    declared,
-    /^>=0\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? <0\.\d+\.0-0$/,
-    `engines.dsh 形状应为 ">=<当前线><-rc.n> <下一 minor>-0"（上界带 -0 才锁得住下一 minor 的预发布），实际 ${declared}`,
+  // 0.2.2-rc.1 起 engines.dsh 按 tuple 显式分条款（Issues #45），形如
+  // `>=0.2.1-rc.2 <0.2.2-0 || >=0.2.2-alpha.2 <0.2.3-0`；每条 clause 的上界带 -0 才锁得住
+  // 下一 minor 的预发布。允许多条 `||` 分隔的 clause，但至少一条。
+  const clause = />=0\.\d+\.\d+(?:-[0-9A-Za-z.-]+)? <0\.\d+\.\d+-0/
+  const clauses = declared.split('||').map((s) => s.trim())
+  assert.ok(
+    clauses.length >= 1 && clauses.every((c) => clause.test(c)),
+    `engines.dsh 每条 clause 形状应为 ">=<版本><-pre> <<next minor>.0-0"（上界带 -0 才锁得住预发布），实际 ${declared}`,
   )
 
   const dev = hostDevDeps()

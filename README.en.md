@@ -6,7 +6,7 @@
 
 [中文](./README.md) | **English**
 
-[![version](https://img.shields.io/badge/version-0.5.2-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
+[![version](https://img.shields.io/badge/version-0.5.3-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--rc.2-4D6BFE)](https://github.com/deepseek-ai/deepseek-harness)
 
@@ -140,9 +140,9 @@ The plugin works normally with neither installed. The waiting-review data comes 
 
 | Item | Value |
 |---|---|
-| DSH kernel | `engines.dsh: >=0.2.1-rc.2 <0.3.0-0` |
-| Verified generations | `0.2.1-rc.2` / `rc.3` / `rc.4` (gating, cold boot assembly, type check and the full suite pass on all three; real GUI acceptance was additionally done on rc.2) |
-| Peer dependencies | `@deepseek-ai/cordis ~4.0.5` plus 12 `@deepseek-ai/dsh-*` packages (range `^0.2.1-rc.2`) |
+| DSH kernel | `engines.dsh: >=0.2.1-rc.2 <0.2.2-0 \|\| >=0.2.2-alpha.2 <0.2.3-0` |
+| Verified generations | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1` (gating, cold boot assembly, type check and the full suite pass on all; real GUI acceptance was additionally done on rc.2) |
+| Peer dependencies | `@deepseek-ai/cordis ~4.0.5` plus 12 `@deepseek-ai/dsh-*` packages (range `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`) |
 | Upstream baseline | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`, source taken from the published package into this repo's `src/` |
 
 On `rc.4` the **behavior** has drifted from the baseline (blank session reuse and draft initialization semantics). This package's fork still follows the baseline generation, so those improvements do not reach users: loading cleanly is not the same as behaving identically. The per-item differences and the triggers to act on them live in [docs/upgrading.md](docs/upgrading.md), section "上游代次跟踪".

@@ -140,7 +140,7 @@
 
 ## 兼容声明为什么长这样（12 条 peer 不是元数据）
 
-README 只给结论（声明 `>=0.2.1-rc.2 <0.3.0-0`，另有 12 条 peer），机制记在这里。
+README 只给结论（声明 `>=0.2.1-rc.2 <0.2.2-0 || >=0.2.2-alpha.2 <0.2.3-0`，另有 12 条 peer），机制记在这里。
 
 peer 里那 12 条**不是元数据**：≤0.2.0 的内核不读 `engines.dsh`，只按 `@deepseek-ai/dsh*` peer 的范围判兼容。不逐条声明时，0.2.0 会把本包判成「兼容」并装进去 —— 而那一代没有 `@deepseek-ai/dsh-api-remote-access`，客户端 `inject` 的 `remoteAccess` 永远拿不到，fiber 永久 pending，`uiWorkspace` 不再被提供，`ui-sidebar` / `ui-conversation` / `ui-chat` 等 12 条一起不激活，**整页 "Failed to load plugins"，用户失去整个侧栏**。声明之后，0.2.0-rc.2 实测是内核直接 `skipping profile bundle`，宿主不受损；而 0.2.1 起 `engines.dsh` 命中即返回、peer 不参与判定，窗口内代次不受影响。
 
@@ -149,19 +149,27 @@ peer 里那 12 条**不是元数据**：≤0.2.0 的内核不读 `engines.dsh`�
 - 漏写一条 peer 不会立刻报错，只会在**旧内核**上炸，而旧内核根本不在 CI 矩阵里；
 - `engines.dsh` 与 peer 下界必须同一条线（`tests/artifacts.node.test.mjs` 锁住），只改一边等于声明面失效。
 
-**预发布版匹配不上 caret 范围，这是 semver 规则而不是破口**（Issues #43 §3，2026-11-02 复核）：12 条
-peer 的 `^0.2.1-rc.2` 按预发布规则**不匹配** `0.2.2-alpha.x`（预发布只对同 `[major,minor,patch]` 元组的
-范围可见），但 `0.2.2` **正式版**落在 `>=0.2.1-rc.2 <0.3.0` 里，会自动纳入。所以 alpha 线提前验证时才需要
-临时把范围写成 `^0.2.1-rc.2 || ^0.2.2-alpha.2`，**这类临时改动不入仓**：`tests/artifacts.node.test.mjs`
-锁的就是 peer == `^` + `engines.dsh` 下界这一条不变式，commit 半个 `||` 范围会让声明面与守卫互相说谎，
-而"支持 0.2.2-alpha.x"在实测通过之前也不该被写进任何兼容声明（未判定不是绿）。
+**预发布版匹配不上 caret 范围，这是 semver 规则而不是破口**（Issues #43 §3，2026-11-02 复核；
+Issues #45，2026-11-06 定稿）：12 条 peer 的 `^0.2.1-rc.2` 按预发布规则**不匹配** `0.2.2-alpha.x`
+与 `0.2.2-rc.1`（预发布只对同 `[major,minor,patch]` 元组的范围可见）。`engines.dsh` 同样如此：
+`>=0.2.1-rc.2 <0.3.0-0` 匹配不到 `0.2.2-rc.1`，因为 `0.2.2-rc.1` 的元组 `[0,2,2]` 没有对应的
+预发布限定入口。
+
+所以 0.2.2 线起，`engines.dsh` 与 peer 都改为**按 tuple 显式分条款**：
+- `engines.dsh`: `>=0.2.1-rc.2 <0.2.2-0 || >=0.2.2-alpha.2 <0.2.3-0`
+- peer: `^0.2.1-rc.2 || ^0.2.2-rc.1`
+
+每条 clause 的上界带 `-0` 锁住下一 minor 的预发布，peer 的 `^0.2.2-rc.1` 让旧内核（不读 engines.dsh）
+也能放行 0.2.2 线。`tests/artifacts.node.test.mjs` 与 `tests/version-line.node.test.mjs`
+的看守同步更新，接受多 clause 格式。
 
 ## 上游代次跟踪（2026-10-27 实测）
 
-本包声明 `engines.dsh: >=0.2.1-rc.2 <0.3.0-0`，peer 侧另有 12 条 `@deepseek-ai/dsh-*`（`^0.2.1-rc.2`，
-用于让不读 `engines.dsh` 的旧内核拒绝装载）。
+本包声明 `engines.dsh: >=0.2.1-rc.2 <0.2.2-0 || >=0.2.2-alpha.2 <0.2.3-0`，peer 侧另有 12 条
+`@deepseek-ai/dsh-*`（`^0.2.1-rc.2 || ^0.2.2-rc.1`，用于让不读 `engines.dsh` 的旧内核拒绝装载）。
 
-**已验代次**：`0.2.1-rc.2`（= 当时 npm `latest`，也是本包声明的下界）、`0.2.1-rc.3`、`0.2.1-rc.4`。
+**已验代次**：`0.2.1-rc.2`（= 当时 npm `latest`，也是本包声明的下界）、`0.2.1-rc.3`、`0.2.1-rc.4`、
+`0.2.2-rc.1`（= 当前 npm `latest`，0.2.2 线入口）。
 三代的门禁（本运行时 + 0.2.1+ 语义双判）、冷启动装配、`dsh.client.inject` 12 个包可解析、
 `tsc`（**对着该代次真实的 `.d.ts`**，不是对着基线猜）、`vitest 183` + `node 41` 全部通过。
 rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / 扁平列表 / 搜索命中与无匹配 /
@@ -205,7 +213,7 @@ rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / �
 **升基线的清单**（漏一项 CI 就红，2026-10-27 实测踩过）：
 
 - 26 个 `@deepseek-ai/dsh-*` devDependencies 一起改（`tests/artifacts.node.test.mjs` 逐个断言）；
-- `peerDependencies` 里那 12 条的范围必须等于新的 `engines.dsh` 下界（同文件另一条用例锁住）；
+- `peerDependencies` 里那 12 条的范围必须是 `^<engines.dsh 下界> || ^<0.2.2 线入口>`（同文件另一条用例锁住）；
 - `tests/artifacts.node.test.mjs` 里那条**硬编码**的 `'0.2.1-rc.2'`；
 - 本文件「基线从哪来」「本地改动清单」两节里的版本号；
 - 重新 `pnpm install` 并重建 `lib/`（产物随源码提交）。
