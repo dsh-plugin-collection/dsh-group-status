@@ -6,6 +6,14 @@
 
 ## 未发布
 
+- **fix** 内核 `0.2.2-rc.1` 已是 npm `latest`，但 `engines.dsh` 的 `>=0.2.1-rc.2 <0.3.0-0` 按
+  node-semver 预发布规则匹配不到 `0.2.2-rc.1`（预发布只对同 `[major,minor,patch]` 元组的范围可见），
+  导致声明兼容却被闸门拒载（Issues #45）。`engines.dsh` 改为按 tuple 显式分条款：
+  `>=0.2.1-rc.2 <0.2.2-0 || >=0.2.2-alpha.2 <0.2.3-0`；12 个 `^0.2.1-rc.2` 型 peer 全部追加
+  `|| ^0.2.2-rc.1`，让不读 `engines.dsh` 的旧内核也能放行 0.2.2 线。相关测试看守同步更新：
+  `tests/artifacts.node.test.mjs` 的 peer 范围断言、`tests/version-line.node.test.mjs` 的
+  `engines.dsh` 形状正则。
+
 ## 0.5.2 — 2026-11-05
 
 - **fix** 内核 `0.2.2` 线前瞻适配（Issues #43，经 `0.2.2-alpha.2` 发布产物对照，无破坏性变更）：

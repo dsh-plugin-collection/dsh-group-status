@@ -85,7 +85,7 @@ test('包依赖与 DSH 0.2.1-rc.2 基线一致', () => {
   )
 })
 
-test('每个客户端注入包都声明为 peer，且范围等于 engines.dsh 的下界', () => {
+test('每个客户端注入包都声明为 peer，且范围覆盖 engines.dsh 的下界与 0.2.2 线入口', () => {
   const pkg = JSON.parse(read('package.json'))
   const peers = pkg.peerDependencies ?? {}
   const inject = pkg.dsh?.client?.inject ?? []
@@ -100,8 +100,11 @@ test('每个客户端注入包都声明为 peer，且范围等于 engines.dsh �
   assert.ok(floor, 'engines.dsh 必须以下界开头，本用例靠它推导 peer 范围')
   assert.ok(inject.length > 0, 'dsh.client.inject 不能为空')
 
+  // 0.2.2-rc.1 起内核 latest 换代，engines.dsh 已按 tuple 显式分条款（见 Issues #45），
+  // peer 同样需要追加 `|| ^0.2.2-rc.1` 才能在旧内核（不读 engines.dsh）上放行 0.2.2 线。
+  const expectedPeer = `^${floor} || ^0.2.2-rc.1`
   for (const name of inject) {
-    assert.equal(peers[name], `^${floor}`, `${name} 未声明为 peer，或其范围与 engines.dsh 下界不一致`)
+    assert.equal(peers[name], expectedPeer, `${name} 未声明为 peer，或其范围与 engines.dsh 下界 + 0.2.2 线入口不一致`)
   }
 })
 
