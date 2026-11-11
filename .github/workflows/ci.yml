@@ -35,7 +35,7 @@ jobs:
       # 宿主包线必须等于它，且本包 manifest 必须通过宿主 evaluatePluginCompatibility。
       # CI 容器里没有 dsh CLI，不注入的话那条只会自洽检查、悄悄跳过。
       # 宿主换代时改这一行 + devDependencies，两者不一致会红——这是有意的。
-      DSH_RUNTIME_VERSION: "0.2.1-rc.2"
+      DSH_RUNTIME_VERSION: "0.2.2-rc.1"
     steps:
       - name: 检出源码（不用 marketplace action）
         shell: bash

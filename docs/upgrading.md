@@ -242,6 +242,9 @@ rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / �
   **运行期出现两份 cordis 实例**，那是行为问题而不是安装问题，只能靠人工验收；
 - `peerDependencies` 里那 12 条的范围必须是 `^<engines.dsh 下界> || ^<0.2.2 线入口>`（同文件另一条用例锁住）；
 - `tests/artifacts.node.test.mjs` 里那条**硬编码**的 `'0.2.1-rc.2'`；
+- **`.github/workflows/ci.yml` 的 `DSH_RUNTIME_VERSION`**（2026-11-11 漏过一次，CI 当场红）：CI 容器里
+  没有 dsh CLI，`tests/version-line.node.test.mjs` 的宿主版本从这条 env 来。它和 devDependencies
+  不一致时「开发依赖线必须等于宿主线」会红——这是有意的，但很容易只改了 package.json 就以为完事；
 - 本文件「基线从哪来」「本地改动清单」两节里的版本号；
 - 重新 `pnpm install` 并重建 `lib/`（产物随源码提交）。
 
