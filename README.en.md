@@ -93,7 +93,7 @@ This plugin draws three session state tiers:
 | <img src="docs/media/glyph-running.svg" width="14" height="14" alt=""/> | Spinner | The group has a running session (including running subagents) | `StateDot` `ongoing` |
 | <img src="docs/media/glyph-completed.svg" width="10" height="10" alt=""/> | Green dot | The group has a completed session that is still unread | `StateDot` `done`, same as session rows |
 
-The icons are reconstructions: geometry follows `StateDot` (a 6px core inside a 10px slot, and a 14px ring with an arc of about 72 degrees), colors are sampled from the two real screenshots above, both taken in the dark theme. [scripts/make-badge-glyphs.mjs](scripts/make-badge-glyphs.mjs) generates them. In the UI the spinner keeps rotating (one turn per 1.5s), so a static image can only be one frame. The running UI is the authority on colors; this package keeps no color table of its own.
+The icons are reconstructions: geometry follows `StateDot` (a 6px core inside a 10px slot, and a 14px ring with an arc of about 72 degrees), colors are sampled from the two real screenshots above, both taken in the dark theme. [scripts/make-badge-glyphs.mjs](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/scripts/make-badge-glyphs.mjs) generates them. In the UI the spinner keeps rotating (one turn per 1.5s), so a static image can only be one frame. The running UI is the authority on colors; this package keeps no color table of its own.
 
 External status sources supply their own glyph and color tier. This plugin decides neither their shape nor whether they pulse, so those two glyphs are not reconstructed here: they belong to the plugins that own them.
 
@@ -121,7 +121,7 @@ Turning a tier off removes it from the collapsed row entirely: no dot, no contri
 
 Saving applies immediately. The Host writes the values into the `config` of the `dsh-group-status` entry in the profile patch, so they survive a reload. When the settings cannot be read (for example the Host exposes no settings service), the defaults apply: unread is not the same as turned off. Unknown fields left over in a profile are not read, so their effect equals the default.
 
-External sources deliberately have no switch on this page: this plugin knows no specific source, so its config surface must not carry another plugin's domain names or icon shapes either. To silence a source, use that plugin's own settings card; when it turns the source off it stops registering, and the badge loses that item. See "Who owns visibility" in [`docs/facet-protocol.md`](docs/facet-protocol.md) (Chinese only).
+External sources deliberately have no switch on this page: this plugin knows no specific source, so its config surface must not carry another plugin's domain names or icon shapes either. To silence a source, use that plugin's own settings card; when it turns the source off it stops registering, and the badge loses that item. See "Who owns visibility" in [`docs/facet-protocol.md`](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/facet-protocol.md) (Chinese only).
 
 ---
 
@@ -145,9 +145,9 @@ The plugin works normally with neither installed. The waiting-review data comes 
 | Peer dependencies | `@deepseek-ai/cordis ~4.0.5` plus 12 `@deepseek-ai/dsh-*` packages (range `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`) |
 | Upstream baseline | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`, source taken from the published package into this repo's `src/` |
 
-On `rc.4` the **behavior** has drifted from the baseline (blank session reuse and draft initialization semantics). This package's fork still follows the baseline generation, so those improvements do not reach users: loading cleanly is not the same as behaving identically. The per-item differences and the triggers to act on them live in [docs/upgrading.md](docs/upgrading.md), section "上游代次跟踪".
+On `rc.4` the **behavior** has drifted from the baseline (blank session reuse and draft initialization semantics). This package's fork still follows the baseline generation, so those improvements do not reach users: loading cleanly is not the same as behaving identically. The per-item differences and the triggers to act on them live in [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md), section "上游代次跟踪".
 
-The 12 peer entries are not metadata. Kernels that do not read `engines.dsh` decide compatibility from the peer ranges alone, and a missing entry lets an old kernel load this package and fail the whole page. The mechanism is recorded in [docs/upgrading.md](docs/upgrading.md), section "兼容声明为什么长这样".
+The 12 peer entries are not metadata. Kernels that do not read `engines.dsh` decide compatibility from the peer ranges alone, and a missing entry lets an old kernel load this package and fail the whole page. The mechanism is recorded in [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md), section "兼容声明为什么长这样".
 
 ---
 
@@ -175,7 +175,7 @@ ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
 - Same-id conflicts resolve by origin, independent of registration order: the state owner always wins over a stand-in registrant.
 - Cross-plugin **value imports** do not work in this project (the client bundle is a self-contained closure factory), so providers use only the runtime symbols from `require('dsh-group-status/client')` and never import this package's types.
 
-The full contract, every `FacetFold` field, the default merge, lifecycle and degradation, and the version rules are in [docs/facet-protocol.md](docs/facet-protocol.md) (Chinese only), including why the surface is `subscribe` / `getSnapshot` rather than a React hook.
+The full contract, every `FacetFold` field, the default merge, lifecycle and degradation, and the version rules are in [docs/facet-protocol.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/facet-protocol.md) (Chinese only), including why the surface is `subscribe` / `getSnapshot` rather than a React hook.
 
 ---
 
@@ -185,7 +185,7 @@ The full contract, every `FacetFold` field, the default merge, lifecycle and deg
 pnpm install
 pnpm build        # tsc type check + tsdown bundle → lib/
 pnpm watch        # rebuild on src/ changes (a dsh web restart is still required)
-pnpm test         # test:node (node --test, 50 cases) + test:spec (vitest + jsdom, 191 cases)
+pnpm test         # test:node (node --test, 60 cases) + test:spec (vitest + jsdom, 191 cases)
 pnpm test:spec    # spec suite only
 pnpm check-upstream   # upstream generation tracking (add --latest for the highest published version)
 ```
@@ -205,13 +205,13 @@ dsh plugin --profile web add "link:$PWD"
 
 Besides the vendored upstream copies, `tests/` holds this repository's own cases for the aggregation: counting, mutual exclusion among pending kinds, subagents, blank and archived skipping, external source registration and unregistration, hover wording. 9 upstream specs only run inside the DSH monorepo; the reasons are listed one by one at the top of [vitest.config.ts](vitest.config.ts).
 
-The part of the host contract that can **fail silently** (the pending-kind set this plugin accepts, and the two state facts read from the host) is compared against the locked host implementation by [tests/host-pending-kinds.node.test.mjs](tests/host-pending-kinds.node.test.mjs), so a host change turns it red. README facts that drift with the code (version badge, setting fields and defaults, test case counts, forbidden wording) are guarded by [tests/readme-facts.node.test.mjs](tests/readme-facts.node.test.mjs).
+The part of the host contract that can **fail silently** (the pending-kind set this plugin accepts, and the two state facts read from the host) is compared against the locked host implementation by [tests/host-pending-kinds.node.test.mjs](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/tests/host-pending-kinds.node.test.mjs), so a host change turns it red. README facts that drift with the code (version badge, setting fields and defaults, test case counts, forbidden wording) are guarded by [tests/readme-facts.node.test.mjs](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/tests/readme-facts.node.test.mjs).
 
 ---
 
 ## Known limitations
 
-- **An upstream generation change needs a manual rebase**: this package vendors upstream source and does not use a stable public API. When the host changes a slot name, component signature, or context contract, follow [docs/upgrading.md](docs/upgrading.md).
+- **An upstream generation change needs a manual rebase**: this package vendors upstream source and does not use a stable public API. When the host changes a slot name, component signature, or context contract, follow [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md).
 - **One more full measurement pass per state change**: the aggregate count shares its derivation with the expanded state, so an expanded group must be measured too, because its ancestors use its numbers. On very large groups (hundreds of sessions) that pass costs one more traversal plus an upward roll, guarded by the performance cases in `tests/group-status.client.spec.ts`.
 - **External glyphs depend entirely on their providers**: a missing companion plugin simply means one fewer glyph; it never affects the core badge. When a provider ships no wording, the line falls back to the generic "needs attention".
 - **The count is coarser than the details**: an external source contributes the number it reports, and this plugin does not redefine another source's counting basis.
@@ -222,9 +222,9 @@ The part of the host contract that can **fail silently** (the pending-kind set t
 
 ## Documentation
 
-- [docs/facet-protocol.md](docs/facet-protocol.md): the cross-plugin status source protocol (required reading for providers)
-- [docs/upgrading.md](docs/upgrading.md): upstream baseline, local change list, rebase and verification, generation tracking, why the compatibility declaration looks like this
-- [src/client/cross-plugin-summary.ts](src/client/cross-plugin-summary.ts): the provider-side template, with its design notes in the file header
+- [docs/facet-protocol.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/facet-protocol.md): the cross-plugin status source protocol (required reading for providers)
+- [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md): upstream baseline, local change list, rebase and verification, generation tracking, why the compatibility declaration looks like this
+- [src/client/cross-plugin-summary.ts](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/src/client/cross-plugin-summary.ts): the provider-side template, with its design notes in the file header
 
 Both documents are currently Chinese only.
 

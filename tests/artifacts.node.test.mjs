@@ -132,7 +132,7 @@ test('每个实现源文件都有对应的 lib/types 产物', () => {
   assert.deepEqual(
     missing,
     [],
-    '以下产物缺失——`tsc` 的增量缓存会静默跳过输出，跑全量构建：rm -rf lib/types lib/tsconfig.tsbuildinfo && pnpm build',
+    '以下产物缺失——`tsc` 的增量缓存会静默跳过输出，跑全量构建：rm -rf lib/types node_modules/.cache/tsconfig.tsbuildinfo && pnpm build（缓存位置见 tsconfig.json 的 tsBuildInfoFile）',
   )
 })
 

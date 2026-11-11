@@ -17,6 +17,17 @@
     "declarationMap": true,
     "composite": true,
     "incremental": true,
+    // 增量缓存不能留在发布面里。不设这一项时，缓存默认落在 outDir 下的
+    // lib/tsconfig.tsbuildinfo，而 `files: ["lib"]` 那种目录条目会把它一并收进 tarball
+    // （Issues #47 就是这么进的包，`.gitignore` 管不到 npm）。挪到仓库自己的
+    // node_modules/.cache/ 之后：既不在 files 白名单能命中的范围内，也已被 `.gitignore`
+    // 的 node_modules 覆盖，仓库根不会多出未跟踪文件。
+    // 路径按 **tsconfig.json 所在目录**（仓库根）解析，tsc 会自己创建缺的目录。
+    // 不要写成 `../node_modules/...`：那是仓库外，并且同一个父目录会被多个 checkout 共用，
+    // 增量缓存一旦被共享就会复现 2026-10-16 那次「陈旧缓存静默跳过 emit、退出码仍是 0」。
+    // 也不许改成 `incremental: false` / `composite: false`：关掉增量不是修复手段，
+    // 全量重建的正确步骤见 docs/upgrading.md。
+    "tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo",
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowImportingTsExtensions": true,

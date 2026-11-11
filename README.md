@@ -95,7 +95,7 @@ dsh plugin --profile web remove dsh-group-status
 | <img src="docs/media/glyph-running.svg" width="14" height="14" alt=""/> | 转圈 | 组内有进行中（含运行中的子智能体） | `StateDot` `ongoing` |
 | <img src="docs/media/glyph-completed.svg" width="10" height="10" alt=""/> | 绿点 | 组内有已完成但未读的会话 | `StateDot` `done`，与会话行一致 |
 
-图标是复刻件：形状按 `StateDot` 的几何（实心点是 10px 槽位里的 6px 圆，转圈是 14px 的环加一弧约 72°），颜色取自上面两张实机截图的像素，与截图同为暗色主题，由 [scripts/make-badge-glyphs.mjs](scripts/make-badge-glyphs.mjs) 生成。「转圈」在 UI 里持续旋转（1.5s 一圈），这里只能是一帧。真实界面上的颜色以 UI 为准，本包不另存一份色值表。
+图标是复刻件：形状按 `StateDot` 的几何（实心点是 10px 槽位里的 6px 圆，转圈是 14px 的环加一弧约 72°），颜色取自上面两张实机截图的像素，与截图同为暗色主题，由 [scripts/make-badge-glyphs.mjs](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/scripts/make-badge-glyphs.mjs) 生成。「转圈」在 UI 里持续旋转（1.5s 一圈），这里只能是一帧。真实界面上的颜色以 UI 为准，本包不另存一份色值表。
 
 外部状态源（定时任务、等待评审等）交自己的图标与色档，本插件不决定它们的图标形状、颜色档位与是否闪烁，所以那两枚图标不在这里复刻，要看它们各自提供方的说明。
 
@@ -123,7 +123,7 @@ dsh plugin --profile web remove dsh-group-status
 
 点「保存」即时生效，无需刷新。设置由宿主写进 profile patch 的 `dsh-group-status` 条目 `config`，刷新页面后仍在。读不到设置面（例如宿主未提供设置服务）时回落为默认值「全部显示」：读不到不等于用户关掉。profile 里残留的未知字段不读取，行为等同默认。
 
-外部来源在这张表单里没有开关，这是设计：本插件不认识任何具体来源，配置面也就不该出现别家的域名与图标形状。要关某个来源，去那个插件自己的设置卡片；它关掉时不注册状态源，徽标上就没有这一项。详见 [docs/facet-protocol.md](docs/facet-protocol.md) 的「显隐归谁」。
+外部来源在这张表单里没有开关，这是设计：本插件不认识任何具体来源，配置面也就不该出现别家的域名与图标形状。要关某个来源，去那个插件自己的设置卡片；它关掉时不注册状态源，徽标上就没有这一项。详见 [docs/facet-protocol.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/facet-protocol.md) 的「显隐归谁」。
 
 ---
 
@@ -147,9 +147,9 @@ dsh plugin --profile web remove dsh-group-status
 | peer 依赖 | `@deepseek-ai/cordis ~4.0.5` + 12 个 `@deepseek-ai/dsh-*`（范围 `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`） |
 | 上游基线 | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`（源码 vendored 进本仓库 `src/`） |
 
-`rc.4` 的**行为面**相对基线有漂移（空白会话复用、草稿初始化语义），本包的 fork 仍按基线代次走，所以那些改进到不了用户；能跑不等于行为一致，逐条差异与触发条件记在 [docs/upgrading.md](docs/upgrading.md) 的「上游代次跟踪」。
+`rc.4` 的**行为面**相对基线有漂移（空白会话复用、草稿初始化语义），本包的 fork 仍按基线代次走，所以那些改进到不了用户；能跑不等于行为一致，逐条差异与触发条件记在 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md) 的「上游代次跟踪」。
 
-peer 里那 12 条不是元数据：不读 `engines.dsh` 的旧内核只按 peer 范围判兼容，漏声明会让旧代次把本包装进去并整页失败。因果与实测记在 [docs/upgrading.md](docs/upgrading.md)。
+peer 里那 12 条不是元数据：不读 `engines.dsh` 的旧内核只按 peer 范围判兼容，漏声明会让旧代次把本包装进去并整页失败。因果与实测记在 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md)。
 
 ---
 
@@ -177,7 +177,7 @@ ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
 - 同 id 冲突由来源决胜、与注册顺序无关：状态所有者恒胜代管者。
 - 跨插件**值导入**在本项目走不通（客户端 bundle 是自包含的闭包工厂），所以提供方只用 `require` 拿到的运行时符号，不 `import` 本包的类型。
 
-完整契约、`FacetFold` 逐字段、缺省合并规则、生命周期与降级、版本规则见 [docs/facet-protocol.md](docs/facet-protocol.md)。为什么这里是 `subscribe` / `getSnapshot` 而不是 React hook，也在那份文档里。
+完整契约、`FacetFold` 逐字段、缺省合并规则、生命周期与降级、版本规则见 [docs/facet-protocol.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/facet-protocol.md)。为什么这里是 `subscribe` / `getSnapshot` 而不是 React hook，也在那份文档里。
 
 ---
 
@@ -187,7 +187,7 @@ ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
 pnpm install
 pnpm build        # tsc 类型检查 + tsdown 打包 → lib/
 pnpm watch        # 监听 src/ 自动重建（仍需重启 dsh web）
-pnpm test         # test:node（node --test，50 用例）+ test:spec（vitest + jsdom，191 用例）
+pnpm test         # test:node（node --test，60 用例）+ test:spec（vitest + jsdom，191 用例）
 pnpm test:spec    # 只跑 spec 套件
 pnpm check-upstream   # 上游代次跟踪（加 --latest 查 npm 已发布的最高版）
 ```
@@ -207,15 +207,15 @@ dsh plugin --profile web add "link:$PWD"
 
 `tests/` 的上游副本之外，本仓库自己的用例覆盖折叠聚合（计数、待处理类互斥、子智能体、空白/归档跳过、外部来源登记与注销、悬停文案）。另有 9 个上游 spec 只能在 DSH monorepo 里跑，原因逐条写在 [vitest.config.ts](vitest.config.ts) 顶部。
 
-README 里会随代码漂移的可数事实（版本徽章、设置项字段与默认值、用例数、不该出现的内部措辞、引用可达性）由 [tests/readme-facts.node.test.mjs](tests/readme-facts.node.test.mjs) 看着。
+README 里会随代码漂移的可数事实（版本徽章、设置项字段与默认值、用例数、不该出现的内部措辞、引用可达性）由 [tests/readme-facts.node.test.mjs](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/tests/readme-facts.node.test.mjs) 看着。
 
-宿主契约里会**静默失效**的那部分（本插件认的待处理 kind 集合、从宿主读的两个状态事实）由 [tests/host-pending-kinds.node.test.mjs](tests/host-pending-kinds.node.test.mjs) 对着锁定版宿主实现比对，宿主一改就红。
+宿主契约里会**静默失效**的那部分（本插件认的待处理 kind 集合、从宿主读的两个状态事实）由 [tests/host-pending-kinds.node.test.mjs](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/tests/host-pending-kinds.node.test.mjs) 对着锁定版宿主实现比对，宿主一改就红。
 
 ---
 
 ## 已知限制
 
-- **上游换代要手工 rebase**：本包 vendored 了上游源码，用的不是稳定公共 API；上游改槽位名、组件签名或上下文契约时要跟着改，步骤见 [docs/upgrading.md](docs/upgrading.md)。
+- **上游换代要手工 rebase**：本包 vendored 了上游源码，用的不是稳定公共 API；上游改槽位名、组件签名或上下文契约时要跟着改，步骤见 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md)。
 - **每次状态变更多一轮全量测量**：聚合计数与展开态共用同一份派生，折叠的父分组要算得准，展开的分组同样得被测量。超大分组（数百会话）的这一轮 traverse 与上卷成本由 `tests/group-status.client.spec.ts` 的性能用例守住。
 - **外部状态图标完全依赖提供方**：搭档插件不装就只是少那两个图标，不影响本体；提供方文案缺失时退回通用「需要关注」。
 - **数字比明细粗**：外部来源按它自己报的条数计入，本插件不重新定义别人的计数口径。
@@ -226,9 +226,9 @@ README 里会随代码漂移的可数事实（版本徽章、设置项字段与�
 
 ## 文档
 
-- [docs/facet-protocol.md](docs/facet-protocol.md)：跨插件状态源协议（提供方必读）
-- [docs/upgrading.md](docs/upgrading.md)：上游基线、本地改动清单、换代 rebase 与验证、上游代次跟踪
-- [src/client/cross-plugin-summary.ts](src/client/cross-plugin-summary.ts)：提供方侧骨架，文件头即设计说明
+- [docs/facet-protocol.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/facet-protocol.md)：跨插件状态源协议（提供方必读）
+- [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md)：上游基线、本地改动清单、换代 rebase 与验证、上游代次跟踪
+- [src/client/cross-plugin-summary.ts](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/src/client/cross-plugin-summary.ts)：提供方侧骨架，文件头即设计说明
 
 以上两份文档目前只有中文版本。
 

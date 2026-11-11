@@ -13,12 +13,17 @@
 - **构建链**：`build/tools/` 是上游 tsdown 客户端预设拉平后的自包含副本（自解析 manifest、扁平导入、不扫 monorepo 路径）；`tsconfig.json` 是独立客户端配置，去掉了 monorepo base 与 project references。
 - **宿主契约有守卫**：`src/client/tree.ts` 是宿主 workspace 投影的 fork，其中 `pendingInteraction.kind` 与两个状态事实（`completionUnread` / `pendingInteraction`）是**会静默失效**的契约点 —— 宿主改了它们的形状，我们照样编译通过、测试照样全绿，只是徽标从此少画一类状态。`tests/host-pending-kinds.node.test.mjs` 直接读**锁定版本**宿主的实现来比对，宿主一改就红；人看的版本是 `pnpm check-upstream`（见 rebase 步骤第 0 步）。
 - **产物要提交**：`lib/` 随仓库提交，`dsh plugin --profile web add "github:dsh-plugin-collection/dsh-group-status"` 直接吃它。**改完 `src/` 必须 `pnpm build` 并一并提交 `lib/`**，否则从 GitHub 安装的人拿不到新行为。
+- **发布面由 `package.json` 的 `files` 白名单决定**：仓库里有的不等于包里有。当前白名单只放 `lib/index.js`、`lib/client.js`、`lib/client.js.map` 与 `lib/types/**/*.d.ts`，`lib/types` 下的 `.js` / `.js.map` / `.d.ts.map` 与 `tsbuildinfo` 一律不出包（它们只服务本地构建与 `node --test`），`docs/` 只放 `docs/media`。**往 `lib/` 里加新的顶层产物时，要同时决定它进不进包**：清单由 `npm pack --dry-run` 实测，改完顺手核对文件数（0.5.3 基线 182 文件，收白名单后 56）。README 里指回本仓库的文档链接因此一律写成绝对地址：`docs/` 整目录不在包里，包内视角的相对链接是死链。
 - **产物不是逐字节可复现的**：`lib/client.js` 里 CSS Modules 的类名哈希（如 `.eCE9Ta_…`）与 `//#region` 注释路径都跟**构建时的绝对路径**有关。同一份 `src/` 在不同 checkout（比如 issue worktree）里构建，`lib/` 会有几十行「只有哈希和路径不同」的 diff——那是噪声，不是功能差异。所以：**谁改 `src/` 谁重建并提交**，review 时不要把这种 diff 当行为变更。
-- **`tsc` 的增量缓存会静默漏产物**（2026-10-16 踩过）：`tsconfig.json` 开了 `incremental` + `composite`，缓存写在 `lib/tsconfig.tsbuildinfo`（已被 `.gitignore` 忽略，不入库）。但**本地那份会陈旧**：`tsc` 认为源文件没变就跳过输出，产物于是停在旧版本，而它**退出码仍是 0、一行错误都不报**。这次是 `lib/types/index.js`（`tsdown.config.ts` 的打包入口）比 `src/index.ts` 少 6 个配置项，`lib/index.js` 里的 `Config` 只剩 1 个字段，**设置界面因此只画得出 1 个开关**。彻底修复要**全量**重建，只删 `lib/types` 不够：
+- **`tsc` 的增量缓存会静默漏产物**（2026-10-16 踩过）：`tsconfig.json` 开了 `incremental` + `composite`，缓存默认跟着 `outDir` 走（曾经是 `lib/tsconfig.tsbuildinfo`，已被 `.gitignore` 忽略，不入库）。但**本地那份会陈旧**：`tsc` 认为源文件没变就跳过输出，产物于是停在旧版本，而它**退出码仍是 0、一行错误都不报**。这次是 `lib/types/index.js`（`tsdown.config.ts` 的打包入口）比 `src/index.ts` 少 6 个配置项，`lib/index.js` 里的 `Config` 只剩 1 个字段，**设置界面因此只画得出 1 个开关**。彻底修复要**全量**重建，只删 `lib/types` 不够。
+
+  缓存位置见 `tsconfig.json` 的 `tsBuildInfoFile`：现在是 `node_modules/.cache/tsconfig.tsbuildinfo`（Issues #47 从 `lib/` 挪出来的，理由是 `lib/` 曾被整目录收进发布白名单，缓存跟着进了 tarball）。所以全量重建要连**缓存所在的位置**一起删，别只删 `lib/`：
 
   ```bash
-  rm -rf lib/types lib/tsconfig.tsbuildinfo && pnpm build
+  rm -rf lib/types node_modules/.cache/tsconfig.tsbuildinfo && pnpm build
   ```
+
+  换过 `tsBuildInfoFile` 的 checkout 里可能还留着旧位置那份 `lib/tsconfig.tsbuildinfo`，它已无人读取，顺手删掉即可。`.gitignore` 收 `*.tsbuildinfo`，它不会进 git；`files` 白名单也不再整目录收 `lib/`，所以它只污染本地 `lib/`、不影响 tarball，但留着会让「`lib/` 里有什么」说不清。`incremental` / `composite` 不是这起事故的原因，**不许**用关掉它们来"修"。
 
   `tests/artifacts.node.test.mjs` 已锁住这条（产物存在性 + `Config` 字段对齐），改完 `src/` 跑 `pnpm test` 就能拦住。
 
