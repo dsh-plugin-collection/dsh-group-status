@@ -143,9 +143,9 @@ dsh plugin --profile web remove dsh-group-status
 | 项 | 值 |
 |---|---|
 | DSH 内核 | `engines.dsh: >=0.2.1-rc.2 <0.2.2-0 \|\| >=0.2.2-alpha.2 <0.2.3-0` |
-| 已验代次 | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1`（门禁、冷启动装配、类型检查与全部用例通过；rc.2 上另做过真 GUI 验收） |
-| peer 依赖 | `@deepseek-ai/cordis ~4.0.5` + 12 个 `@deepseek-ai/dsh-*`（范围 `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`） |
-| 上游基线 | `@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`（源码 vendored 进本仓库 `src/`） |
+| 已验代次 | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1`（门禁、冷启动装配、类型检查与全部用例通过；rc.2 上另做过真 GUI 验收。开发依赖线自 2026-11-11 起是 `0.2.2-rc.1`） |
+| peer 依赖 | `@deepseek-ai/cordis ~4.1.0`（跟随内核；0.2.1 代内核自带 `~4.0.5`） + 12 个 `@deepseek-ai/dsh-*`（范围 `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`） |
+| 上游基线 | `@deepseek-ai/dsh-client-ui-workspace 0.2.2-rc.1`（源码 vendored 进本仓库 `src/`） |
 
 `rc.4` 的**行为面**相对基线有漂移（空白会话复用、草稿初始化语义），本包的 fork 仍按基线代次走，所以那些改进到不了用户；能跑不等于行为一致，逐条差异与触发条件记在 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md) 的「上游代次跟踪」。
 

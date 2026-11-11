@@ -6,6 +6,17 @@
 
 ## 未发布
 
+- **chore** 开发依赖线升到 `0.2.2-rc.1`（26 个 `@deepseek-ai/dsh-*`）：`0.2.2-rc.1` 早已是 npm `latest`，
+  而本包仍对着 `0.2.1-rc.2` 的类型契约编译，`tests/version-line.node.test.mjs` 因此一直在红（它断言
+  开发依赖线必须等于宿主线）。同时把 `@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery` 两条线跟着
+  内核换代：`~4.0.5` → `~4.1.0`、`~3.18.5` → `~3.19.0`（0.2.2-rc.1 的宿主包都声明 cordis `~4.1.0`，
+  peer 停在旧一代会让运行期出现两份 cordis 实例，DI 边静默断开）。`tests/artifacts.node.test.mjs`
+  的依赖断言同步。上游契约面逐文件 diff 复核（`lib/types` 全部差异）记在
+  [`docs/upgrading.md`](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md)
+  的「0.2.2-rc.1 的契约面复核」；结论是纯增量（`WorkspaceSnapshot.cwd`、`UiWorkspaceService.whenAccess`、
+  新座位 `sidebar.session.row.trailing`），本仓库 fork 不需要跟改。重建的 `lib/` 与升级前**逐字节等价**：
+  `client.js` 只有两行 `//#region` 里的 pnpm store 路径带了版本号，gzip 同为 77,347 B。
+  `engines.dsh` 与 12 条 peer 范围**不变**，旧内核（0.2.1 代）仍照常放行。
 - **fix** 内核 `0.2.2-rc.1` 已是 npm `latest`，但 `engines.dsh` 的 `>=0.2.1-rc.2 <0.3.0-0` 按
   node-semver 预发布规则匹配不到 `0.2.2-rc.1`（预发布只对同 `[major,minor,patch]` 元组的范围可见），
   导致声明兼容却被闸门拒载（Issues #45）。`engines.dsh` 改为按 tuple 显式分条款：
