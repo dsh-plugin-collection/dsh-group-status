@@ -6,6 +6,8 @@
 
 ## 未发布
 
+## 0.5.4 — 2026-11-11
+
 - **chore** 开发依赖线升到 `0.2.2-rc.1`（26 个 `@deepseek-ai/dsh-*`）：`0.2.2-rc.1` 早已是 npm `latest`，
   而本包仍对着 `0.2.1-rc.2` 的类型契约编译，`tests/version-line.node.test.mjs` 因此一直在红（它断言
   开发依赖线必须等于宿主线）。同时把 `@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery` 两条线跟着
