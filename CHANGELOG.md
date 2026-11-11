@@ -13,6 +13,22 @@
   `|| ^0.2.2-rc.1`，让不读 `engines.dsh` 的旧内核也能放行 0.2.2 线。相关测试看守同步更新：
   `tests/artifacts.node.test.mjs` 的 peer 范围断言、`tests/version-line.node.test.mjs` 的
   `engines.dsh` 形状正则。
+- **chore** 收紧发布面（Issues #47）：`package.json#files` 从「`lib` + `docs` 整目录」改为显式白名单，
+  发布物 **529.7 kB / 182 文件 → 333.3 kB / 56 文件**（体积 −37%）。333.3 kB 是 `files` 这一项
+  改动的实测值；本版文档同步会让包内的 `README.en.md` / `LICENSE` 等单文件跟着变，届时
+  `npm pack` 显示的 kB 会随之浮动，所以判据看**文件数 56** 与包内清单，不要对着 kB 末位数校。
+  挡在包外的是构建中间产物与
+  增量缓存，它们只服务本地构建与 `node --test`：`lib/types/**/*.js`、`*.js.map`、`*.d.ts.map`，
+  以及 `tsc` 增量缓存 `lib/tsconfig.tsbuildinfo`（此前它紧挨着 `outDir`，被整目录条目一并兜进了
+  tarball，`.gitignore` 管不到 npm）。包内保留 `lib/index.js`、`lib/client.js` 与其 sourcemap、
+  41 个 `.d.ts` 类型入口、`docs/media` 与四份单文件，运行时加载面一字未动。**tsconfig 的
+  `tsBuildInfoFile` 迁到 `node_modules/.cache/tsconfig.tsbuildinfo`**，从源头让缓存不再落在
+  `lib/` 下（`incremental` / `composite` 保持开启，改动原因与全量重建步骤见
+  [`docs/upgrading.md`](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md)）；
+  顺带删掉 `exports` 里的 `"./src/*"`：`src/` 从来不在 `files` 里，这条映射对包消费者永远是
+  空指针，删掉后解析报 `ERR_PACKAGE_PATH_NOT_EXPORTED` 而不是找不到文件。`docs/` 整目录退出
+  tarball，README 里指向两份文档的 7 处相对链接因此改成指向本仓库 `main` 的绝对地址（指向
+  `docs/media/*` 的图片链接保持相对，它们仍在包内）。
 
 ## 0.5.2 — 2026-11-05
 

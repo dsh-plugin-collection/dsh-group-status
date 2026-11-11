@@ -38,7 +38,6 @@
       "types": "./lib/types/client/index.d.ts",
       "default": "./lib/client.js"
     },
-    "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "dsh": {
@@ -125,9 +124,15 @@
   },
   "files": [
     "icon.svg",
-    "lib",
+    "lib/index.js",
+    "lib/client.js",
+    "lib/client.js.map",
+    "lib/types",
+    "!lib/types/**/*.js",
+    "!lib/types/**/*.js.map",
+    "!lib/types/**/*.d.ts.map",
     "cordis.patch.yml",
-    "docs",
+    "docs/media",
     "README.md",
     "README.en.md",
     "LICENSE",
