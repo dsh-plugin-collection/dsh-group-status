@@ -271,6 +271,36 @@ dsh plugin --profile web remove dsh-group-status
 # 两条补丁一起撤，官方行自动回来；重启 dsh web 生效
 ```
 
+## 真 GUI 验收记录（2026-11-11，内核 0.2.2-rc.1）
+
+发布面收紧（Issues #47）与内核线升到 `0.2.2-rc.1` 之后，按跨内核验收的口径补了一轮真 GUI 回归。
+环境是**隔离**的：临时 `DSH_HOME`、插件走 tarball 实体副本（56 个文件）、独立安装的
+`@deepseek-ai/dsh@0.2.2-rc.1` 依赖树（`pi-ai@1.5.2` 配套），全程冷启动。真实 `~/.dsh` 零写入。
+
+| 面 | 结果 | 判据 |
+|---|---|---|
+| 装配 | ✅ | 服务端 `apply called`；`__DSH_BOOT__.entries` 的 73 条含 `dsh-group-status` |
+| client 解析 | ✅ | `missed the module table` / `cannot resolve` / `Failed to load plugins` 均 0 次 |
+| inject | ✅ | `pending (waiting for service)` 0 次 |
+| 徽标出现 | ✅ | 会话执行 `Bash: Sleep 120s` 期间，分组行 `aria-label="1 Running"`，行尾环形转圈 |
+| 悬停明细 | ✅ | tooltip 显示 `1 Running`，与徽标文案一致 |
+| 徽标消失 | ✅ | 任务完成（`1 turns 2 steps`）后徽标撤下 |
+| 设置卡片 / 会话行菜单 | **未判定** | 本轮未点验（这两块不在 #47 的改动面内，由 spec 看守） |
+
+**这一轮踩过的坑，写下来省下一次**：
+
+1. **`llm-pi-ai` 有两份副本**（内核树与 profile 各一份）。给「不被加载的那份」加探针，会得出
+   「apply 从未被调用」的假结论。要探针，先 `createRequire(profile/...).resolve(pkg)` 确认实际加载路径。
+2. **默认模型不在 provider 的直觉位置**：`agent-default-model` 的默认值曾是
+   `provider: deepseek-official`。同一个模型名（`DeepSeek-V4.1-Flash`）在多 provider 下都存在时，
+   请求会落到默认那家——看起来像「配置没生效」，实际是**默认模型没换**。
+   `model.id` / `baseUrl` / `provider` 三者一起打出来，比读 YAML 快得多。
+3. **`pgrep -f "port 3199"` 会抓到外层 shell 而不是 dsh 进程**，据此判断「`DSH_HOME` 被覆盖、
+   隔离失效」是误判。核对隔离要 `tr '\0' '\n' < /proc/<pid>/environ | grep DSH_HOME`，
+   并且先确认 `<pid>` 是那棵树里的 `node .../bin/dsh`。
+4. **杀进程别用 `pgrep ... | xargs kill`**：匹配到自己的 shell 时会把整个命令带崩，
+   表现为「服务没起来、日志文件不存在」——很容易被当成插件问题。
+
 ## 已知限制
 
 - 本包 vendored 上游源码，不是公共 API 消费方：上游重构时 rebase 成本可能不止「重新施加 25 条」。
