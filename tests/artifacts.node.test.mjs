@@ -66,16 +66,19 @@ test('发布产物 lib/index.js 里的 Config 带着全部字段', () => {
   }
 })
 
-test('包依赖与 DSH 0.2.1-rc.2 基线一致', () => {
+test('包依赖与 DSH 0.2.2-rc.1 基线一致', () => {
   const pkg = JSON.parse(read('package.json'))
-  assert.equal(pkg.peerDependencies['@deepseek-ai/cordis'], '~4.0.5')
-  assert.equal(pkg.dependencies['@deepseek-ai/schemastery'], '~3.18.5')
-  assert.equal(pkg.devDependencies['@deepseek-ai/cordis'], '~4.0.5')
-  assert.equal(pkg.devDependencies['@deepseek-ai/schemastery'], '~3.18.5')
+  // 0.2.2-rc.1 把 cordis 抬到 ~4.1.0、schemastery 抬到 ~3.19.0（0.2.1-rc.2 那代是 ~4.0.5 / ~3.18.5）。
+  // 这两条与内核换代绑在一起：本插件 peer 上的 cordis 版本若比内核自己用的小一代，
+  // 装进去会出现两份 cordis 实例，DI 边静默断开。详见 docs/upgrading.md 的升基线清单。
+  assert.equal(pkg.peerDependencies['@deepseek-ai/cordis'], '~4.1.0')
+  assert.equal(pkg.dependencies['@deepseek-ai/schemastery'], '~3.19.0')
+  assert.equal(pkg.devDependencies['@deepseek-ai/cordis'], '~4.1.0')
+  assert.equal(pkg.devDependencies['@deepseek-ai/schemastery'], '~3.19.0')
 
   for (const [name, version] of Object.entries(pkg.devDependencies ?? {})) {
     if (name.startsWith('@deepseek-ai/dsh-')) {
-      assert.equal(version, '0.2.1-rc.2', `${name} 未对齐 DSH 0.2.1-rc.2`)
+      assert.equal(version, '0.2.2-rc.1', `${name} 未对齐 DSH 0.2.2-rc.1`)
     }
   }
 

@@ -7,8 +7,8 @@
 
 ## 基线从哪来
 
-- **基线版本**：`@deepseek-ai/dsh-client-ui-workspace 0.2.1-rc.2`（DSH `dsh-v0.2.1-rc.2` 的发布产物与类型契约）。
-- **来源**：`src/` 与 `tests/` 原从上游 `0.2.0-rc.2` 源码树拷入。`0.2.1-rc.2` 一代的发布包只带 `lib/`，本次同步以官方 `.d.ts`、`lib/client.js`、官方 README 为对照基线，并按本地 `src/` 结构逐项移植。
+- **基线版本**：`@deepseek-ai/dsh-client-ui-workspace 0.2.2-rc.1`（DSH `0.2.2-rc.1` 的发布产物与类型契约；2026-11-11 从 `0.2.1-rc.2` 升上来）。
+- **来源**：`src/` 与 `tests/` 原从上游 `0.2.0-rc.2` 源码树拷入。`0.2.1-rc.2` 与 `0.2.2-rc.1` 两代的发布包都只带 `lib/`，同步以官方 `.d.ts`、`lib/client.js`、官方 README 为对照基线，并按本地 `src/` 结构逐项移植。
 - **不要再 diff `lib/`**：`lib/client.js` 是 tsdown 产物（`window.__ModuleLoader__.load({ id: 'dsh-group-status', factory })` 闭包工厂），不是可 diff 的官方复制品；npm 上发布的上游包同样只带构建产物。**rebase 对象永远是 `src/`。**
 - **构建链**：`build/tools/` 是上游 tsdown 客户端预设拉平后的自包含副本（自解析 manifest、扁平导入、不扫 monorepo 路径）；`tsconfig.json` 是独立客户端配置，去掉了 monorepo base 与 project references。
 - **宿主契约有守卫**：`src/client/tree.ts` 是宿主 workspace 投影的 fork，其中 `pendingInteraction.kind` 与两个状态事实（`completionUnread` / `pendingInteraction`）是**会静默失效**的契约点 —— 宿主改了它们的形状，我们照样编译通过、测试照样全绿，只是徽标从此少画一类状态。`tests/host-pending-kinds.node.test.mjs` 直接读**锁定版本**宿主的实现来比对，宿主一改就红；人看的版本是 `pnpm check-upstream`（见 rebase 步骤第 0 步）。
@@ -88,18 +88,18 @@
 
 ## 测试基线
 
-`pnpm test` = `test:node`（`npm run types && node --test`，50 用例）→ `test:spec`（`vitest run`，jsdom，14 个文件 / 191 用例）。README 里的这两个数字由 `tests/readme-facts.node.test.mjs` 对齐实跑值看守。下表列出与 `navigation.ts`、聚合与设置相关的文件（部分动态生成的循环用例不计入静态表）：
+`pnpm test` = `test:node`（`npm run types && node --test`，60 用例）→ `test:spec`（`vitest run`，jsdom，14 个文件 / 191 用例）。README 里的这两个数字由 `tests/readme-facts.node.test.mjs` 对齐实跑值看守。下表列出与 `navigation.ts`、聚合与设置相关的文件（部分动态生成的循环用例不计入静态表）：
 
 | 文件 | 来源 | 覆盖 |
 |---|---|---|
-| `tests/artifacts.node.test.mjs` | **本仓库** | 构建产物存在性、`Config` 字段对齐、DSH `0.2.1-rc.2` 依赖基线（4 用例，`node --test`）|
+| `tests/artifacts.node.test.mjs` | **本仓库** | 构建产物存在性、`Config` 字段对齐、DSH `0.2.2-rc.1` 依赖基线（6 用例，`node --test`）|
 | `tests/host-pending-kinds.node.test.mjs` | **本仓库** | **宿主契约守卫**：我们认的待处理 kind 必须与锁定版宿主实现一致；宿主认的状态事实（`completionUnread` / `pendingInteraction`）不能消失；外加一条"守卫自己不是摆设"的反例（3 用例，`node --test`）|
 | `tests/cross-plugin-summary.node.test.mjs` | **本仓库** | provider 侧模板：store 订阅、迟到登记自愈、分组折叠、id 归一、帧等值（12 用例，`node --test`）|
 | `tests/facets.node.test.mjs` | **本仓库** | facet 协议：校验、来源决胜、注销、排序、重入合并、缺省合并与非法色档护栏（11 用例，`node --test`）|
 | `tests/tree.client.spec.ts` | 上游 | 分组派生、排序、会话行与搜索 |
 | `tests/browser-styles.client.spec.ts` | 上游 | 侧栏样式契约（直接读 CSS 文件） |
 | `tests/animated-rows.client.spec.tsx` | 上游 | 行动画 |
-| `tests/session-watermarks.client.spec.ts` | **本仓库** | `0.2.1-rc.2` 会话水位线：空白行、基线、活动行抬升、自动上限、搜索揭示与 stored marks 身份稳定 |
+| `tests/session-watermarks.client.spec.ts` | **本仓库** | 0.2.1 起的会话水位线：空白行、基线、活动行抬升、自动上限、搜索揭示与 stored marks 身份稳定 |
 | `tests/badge-settings.client.spec.ts` | **本仓库** | 设置源、默认值回落与引用稳定 |
 | `tests/badge-labels.client.spec.ts` | **本仓库** | 徽标文案、明细顺序、来源图标与脉冲规则 |
 | `tests/badge-settings-card.client.spec.tsx` | **本仓库** | 设置字段规格与插件详情页卡片接线 |
@@ -174,13 +174,25 @@ Issues #45，2026-11-06 定稿）：12 条 peer 的 `^0.2.1-rc.2` 按预发布�
 `@deepseek-ai/dsh-*`（`^0.2.1-rc.2 || ^0.2.2-rc.1`，用于让不读 `engines.dsh` 的旧内核拒绝装载）。
 
 **已验代次**：`0.2.1-rc.2`（= 当时 npm `latest`，也是本包声明的下界）、`0.2.1-rc.3`、`0.2.1-rc.4`、
-`0.2.2-rc.1`（= 当前 npm `latest`，0.2.2 线入口）。
+`0.2.2-rc.1`（= 当前 npm `latest`，0.2.2 线入口；**2026-11-11 起也是开发依赖线**）。
 三代的门禁（本运行时 + 0.2.1+ 语义双判）、冷启动装配、`dsh.client.inject` 12 个包可解析、
 `tsc`（**对着该代次真实的 `.d.ts`**，不是对着基线猜）、`vitest 183` + `node 41` 全部通过。
 rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / 扁平列表 / 搜索命中与无匹配 /
 折叠徽标（「1 进行中 · 1 已完成」两枚点并存）/ 悬停明细两行。证据（JSON 明细 + real-gui 截图）
 在 workspace 的 `devkit/results/dsh-group-status-cross-kernel-2026-10-27.json` 与
 `devkit/results/screens/`，不在本仓库内。
+
+**0.2.2-rc.1 的契约面复核**（2026-11-11，逐文件 diff 两份发布包的 `lib/types`）：
+
+| 上游改动 | 对本包的影响 |
+|---|---|
+| `tree.d.ts`：`WorkspaceSnapshot` 新增可选 `cwd?: string` | 纯增量，本包不读该字段，无需跟改 |
+| `tree.d.ts`：pin 排序不再把 fork 源排在其源会话之前 | 排序由宿主 `tree.ts` 计算，本仓库 fork 只投影；`tests/tree.client.spec.ts` 全绿 |
+| `navigation.d.ts`：`UiWorkspaceService` 新增 `whenAccess(workspaceId, action, callback)` | 新增方法，本包 fork 未实现也不报错（没有人调它）；实现与否记在下方待办 |
+| `navigation.d.ts`：`StartSessionOptions.whenDraftExists` 三态定稿 | 本仓库 Issues #43 已前瞻对齐 |
+| `contract/slots.d.ts`：会话行菜单改走结构化 `ctx.contextMenus`，新增 `ContextMenuTargetMap`，新增 `sidebar.session.row.trailing` 座位 | **需要人看**：本包注册的是 legacy MenuItem 列表（`sessionMenu`），上游保留适配层故仍可用；`trailing` 是新座位，本包未用 |
+| `session-actions/`：`ForkSession.d.ts` / `SessionId.d.ts` 消失，新增 `SessionMenu` / `context-menus` | 本包 `session-actions/` 下的 Fork / SessionId 是**本仓库自己的组件**（vendored 覆盖），不 import 上游同名模块，不受影响 |
+| `locale/` 新增 de/es/fr/ja/pt/ru | 本包只装中英，无影响 |
 
 **契约面没变**：rc.4 的 `dsh-client-ui-workspace/lib/client.js` 相比 rc.2 有 15 行差异
 （231 078 → 231 234 字节），但 `visiblePendingKind` 认的 kind 仍是 `approval` / `plan-review` /
@@ -218,8 +230,21 @@ rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / �
 **升基线的清单**（漏一项 CI 就红，2026-10-27 实测踩过）：
 
 - 26 个 `@deepseek-ai/dsh-*` devDependencies 一起改（`tests/artifacts.node.test.mjs` 逐个断言）；
+- `@deepseek-ai/cordis` 与 `@deepseek-ai/schemastery` 两条线**跟着内核走**：0.2.2-rc.1 把 cordis 抬到
+  `~4.1.0`、schemastery 抬到 `~3.19.0`（0.2.1-rc.2 那代是 `~4.0.5` / `~3.18.5`）。peer 上的 cordis
+  比内核自己用的小一代时，装进去会出现两份 cordis 实例，DI 边静默断开。`tests/artifacts.node.test.mjs` 锁住这两个值。
+
+  **cordis 这条 peer 不参与内核兼容判定**：`dsh-app-boot` 的 `evaluatePluginCompatibility` 只看
+  `@deepseek-ai/dsh*` 前缀的 peer（`lib/index.js` 里那句 `if (name !== "@deepseek-ai/dsh" &&
+  !name.startsWith("@deepseek-ai/dsh-")) continue`），cordis 直接被跳过。所以把 cordis 抬到 `~4.1.0`
+  不会让旧内核（0.2.1 代）拒载，npm 侧也只是 `Conflicting peer dependency` 警告、不中断安装（2026-11-11
+  实测：往 cordis 4.0.5 的树里装一个 peer 要 `~4.1.0` 的包，EXIT 0，树里仍是 4.0.5）。真正的风险是
+  **运行期出现两份 cordis 实例**，那是行为问题而不是安装问题，只能靠人工验收；
 - `peerDependencies` 里那 12 条的范围必须是 `^<engines.dsh 下界> || ^<0.2.2 线入口>`（同文件另一条用例锁住）；
 - `tests/artifacts.node.test.mjs` 里那条**硬编码**的 `'0.2.1-rc.2'`；
+- **`.github/workflows/ci.yml` 的 `DSH_RUNTIME_VERSION`**（2026-11-11 漏过一次，CI 当场红）：CI 容器里
+  没有 dsh CLI，`tests/version-line.node.test.mjs` 的宿主版本从这条 env 来。它和 devDependencies
+  不一致时「开发依赖线必须等于宿主线」会红——这是有意的，但很容易只改了 package.json 就以为完事；
 - 本文件「基线从哪来」「本地改动清单」两节里的版本号；
 - 重新 `pnpm install` 并重建 `lib/`（产物随源码提交）。
 
