@@ -88,12 +88,12 @@
 
 ## 测试基线
 
-`pnpm test` = `test:node`（`npm run types && node --test`，60 用例）→ `test:spec`（`vitest run`，jsdom，14 个文件 / 191 用例）。README 里的这两个数字由 `tests/readme-facts.node.test.mjs` 对齐实跑值看守。下表列出与 `navigation.ts`、聚合与设置相关的文件（部分动态生成的循环用例不计入静态表）：
+`pnpm test` = `test:node`（`npm run types && node --test`，66 用例）→ `test:spec`（`vitest run`，jsdom，15 个文件 / 199 用例）。README 里的这两个数字由 `tests/readme-facts.node.test.mjs` 对齐实跑值看守。下表列出与 `navigation.ts`、聚合与设置相关的文件（部分动态生成的循环用例不计入静态表）：
 
 | 文件 | 来源 | 覆盖 |
 |---|---|---|
 | `tests/artifacts.node.test.mjs` | **本仓库** | 构建产物存在性、`Config` 字段对齐、DSH `0.2.2-rc.1` 依赖基线（6 用例，`node --test`）|
-| `tests/host-pending-kinds.node.test.mjs` | **本仓库** | **宿主契约守卫**：我们认的待处理 kind 必须与锁定版宿主实现一致；宿主认的状态事实（`completionUnread` / `pendingInteraction`）不能消失；外加一条"守卫自己不是摆设"的反例（3 用例，`node --test`）|
+| `tests/host-pending-kinds.node.test.mjs` | **本仓库** | **宿主契约守卫**：我们认的待处理 kind 必须与锁定版宿主实现一致；宿主认的状态事实（`completionUnread` / `pendingInteraction`）不能消失；两代真产物形状（rc.1 多行双引号 / rc.2 单行反引号）必须解析出同一个 kind 集合；外加"守卫自己不是摆设"的三条反例（增删 kind、解析不了、default 泄漏）（6 用例，`node --test`）|
 | `tests/cross-plugin-summary.node.test.mjs` | **本仓库** | provider 侧模板：store 订阅、迟到登记自愈、分组折叠、id 归一、帧等值（12 用例，`node --test`）|
 | `tests/facets.node.test.mjs` | **本仓库** | facet 协议：校验、来源决胜、注销、排序、重入合并、缺省合并与非法色档护栏（11 用例，`node --test`）|
 | `tests/tree.client.spec.ts` | 上游 | 分组派生、排序、会话行与搜索 |
@@ -105,6 +105,8 @@
 | `tests/badge-settings-card.client.spec.tsx` | **本仓库** | 设置字段规格与插件详情页卡片接线 |
 | `tests/navigation-draft-blank.client.spec.ts` | **本仓库** | Issues #43 前瞻适配：空白复用的 preset 感知（无 preset 请求跳过列 preset 的空白、命名 preset 命中同值或无 preset 空白、全部不匹配时新建），以及 `startSession` 草稿意图判定（`whenDraftExists` 单独出现也初始化草稿、`prompt`/`clearPreviousDraft: true` 照旧、`clearPreviousDraft: false` 与仅 `agentPreset` 不碰草稿）。纯对象 stub 驱动真实 `UiWorkspaceService`，运行期只依赖 `cordis`（8 用例）|
 | `tests/group-status.client.spec.ts` | **本仓库** | 折叠聚合：计数、待处理类互斥、子智能体、空白/归档跳过、定时任务与等待评审聚合、未安装时降级；**多层聚合**（展开的中间层必须计入折叠祖先、任意深度、父子环不死循环）；聚合路径全折叠 / 全展开两侧的 perf 护栏。注意 `groupOf()` 走的是真实管线，**不要**再在测试里手工赋 `liveStatus`——那样测试只能证明副本自己 |
+| `tests/factory-threading.client.spec.tsx` | **本仓库** | Issues #50 决策 (c) 的**运行时面**（8 用例，vitest）：`renderFactorySlot` 沿 WorkspaceBrowser→SessionTree/FlatList→ProjectRowItem/SessionNodeItem 透传到行、分组/扁平两视图行组件拿到的就是根上传入的那一个；本包整树 + 两个菜单都不调用工厂（把工厂换成"被调用就抛"的实现照样绿）；行菜单仍是本包自绘 Menu，条目来自 `sidebar.workspaces.session.menu.item` |
+| `tests/factory-threading.node.test.mjs` | **本仓库** | 同一决策的**类型面与已发布产物面**（4 用例，`node --test`）：`lib/types` 里 `WorkspaceBrowserProps` 仍含 `PropsRenderFactories`、`SlotFactoryMap` 仍声明 `contextMenu.button`（保留不消费）、行组件与两个列表体产物仍带 `renderFactorySlot`、产物 JS 里 `renderFactorySlot(` 调用只出现在 toast（rows 一律只透传）。行为 spec 抓不到声明被上游 rebase 静默抹掉，故锁已提交产物 |
 
 **9 个上游 spec 被显式跳过**（`vitest.config.ts` 顶部的 `MONOREPO_ONLY_SPECS`），因为它们在独立仓库里无解：
 
@@ -177,10 +179,14 @@ Issues #45，2026-11-06 定稿）：12 条 peer 的 `^0.2.1-rc.2` 按预发布�
 `0.2.2-rc.1`（= 当前 npm `latest`，0.2.2 线入口；**2026-11-11 起也是开发依赖线**）。
 三代的门禁（本运行时 + 0.2.1+ 语义双判）、冷启动装配、`dsh.client.inject` 12 个包可解析、
 `tsc`（**对着该代次真实的 `.d.ts`**，不是对着基线猜）、`vitest 183` + `node 41` 全部通过。
-rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / 扁平列表 / 搜索命中与无匹配 /
+`0.2.1-rc.2` 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / 扁平列表 / 搜索命中与无匹配 /
 折叠徽标（「1 进行中 · 1 已完成」两枚点并存）/ 悬停明细两行。证据（JSON 明细 + real-gui 截图）
 在 workspace 的 `devkit/results/dsh-group-status-cross-kernel-2026-10-27.json` 与
 `devkit/results/screens/`，不在本仓库内。
+
+**`0.2.2-rc.2` 是验过类型面、spec 面与契约守卫的一代**（2026-11-12 一次性隔离跑，见下节）：`tsc` 对该代次
+真实的 `.d.ts` 全绿、`vitest` 全套全绿、宿主契约守卫 `host-pending-kinds` 全绿。**门禁 / 冷启动装配 / 真 GUI
+都没有做**，开发依赖线因此仍停在 `0.2.2-rc.1`。写台账要把这两件事分开：**验过什么面**与**没验什么面**。
 
 **0.2.2-rc.1 的契约面复核**（2026-11-11，逐文件 diff 两份发布包的 `lib/types`）：
 
@@ -195,7 +201,7 @@ rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / �
 | `locale/` 新增 de/es/fr/ja/pt/ru | 本包只装中英，无影响 |
 
 **契约面没变**：rc.4 的 `dsh-client-ui-workspace/lib/client.js` 相比 rc.2 有 15 行差异
-（231 078 → 231 234 字节），但 `visiblePendingKind` 认的 kind 仍是 `approval` / `plan-review` /
+（231 078 → 231 234 字节；这一句里的 rc.2 = `0.2.1-rc.2`，2026-10-27 那轮的对照基线），但 `visiblePendingKind` 认的 kind 仍是 `approval` / `plan-review` /
 `question`，`completionUnread` 与 `pendingInteraction` 两个事实也都还在 ——
 所以 `src/host-contract.ts` 那道守卫在 rc.4 上是绿的，**不需要跟着改**。
 
@@ -247,6 +253,79 @@ rc.2 上另做了真 GUI 功能验收：分组行 / 会话行 / 视图菜单 / �
   不一致时「开发依赖线必须等于宿主线」会红——这是有意的，但很容易只改了 package.json 就以为完事；
 - 本文件「基线从哪来」「本地改动清单」两节里的版本号；
 - 重新 `pnpm install` 并重建 `lib/`（产物随源码提交）。
+
+### 0.2.2-rc.2 的逐符号核对与「不消费工厂」决策（2026-11-12）
+
+宿主 `0.2.2-rc.2` 新引入的 `renderFactorySlot` / `contextMenu.button` 语义，逐边证据链与方案比较记在
+[`docs/research/0.2.2-rc.2-renderFactorySlot.md`](research/0.2.2-rc.2-renderFactorySlot.md)（Issues #50 的研究台账，
+其 4.2 / 4.3 两节是本节结论与措辞的来源）。本节只登记**核对结论、本次改动、验证记录与差异**。
+
+**逐符号核对**（对照两代发布产物的 `lib/types/**/*.d.ts` 与 `lib/client.js`）：
+
+| rc.1 → rc.2 的改动 | 对本包的影响 |
+|---|---|
+| `contract/slots.d.ts`：`WorkspaceBrowserProps` 的交集新增 `PropsRenderFactories`，宿主注入面从此含 `renderFactorySlot`（必填） | **要跟**：本包类型面与 props 透传链已对齐 —— `WorkspaceBrowser` → `SessionTree` / `FlatList`(`ListView`) → `ProjectRowItem` / `SessionNodeItem` 四条边。`SearchResults` 与 hover 卡两代都不穿工厂，本包同构不穿 |
+| 宿主分组行与会话行改渲共享工厂：`renderFactorySlot('contextMenu.button', …)`，`target` 分别是 `kind: 'workspace'` 与 `kind: 'session'` | **不跟**，取决策 (c)，理由见下 |
+| 注入面删掉 `openWorkspaceMenu` / `openSessionMenu`（rc.2 改走 `useContextMenu` / `useContextMenuTarget`） | 本包 `src/` 对这两个名字**零命中**，不受影响 |
+| `navigation.d.ts` 的 `DraftInitializationOptions` | rc.1 与 rc.2 逐字节相同，**无差异**，不跟 |
+| `@deepseek-ai/dsh-client-ui-primitives` 的 `Menu`：props 里的 `getAnchorRect` 被移除，换成 `anchorRef` / `anchorPoint` | **已修复并复验**（见下「两处漂移的发现 → 修复 → 复验」A）：`src/client/WorkspacePicker.tsx` 把两个座位打包成一份 `MenuAnchorThread` 一次 spread 双穿，rc.2 类型面下 `tsc` 全绿 |
+| 发布产物形态：rc.2 的 `lib/client.js` 压成单行、字符串改用反引号 | **已修复并复验**（见下 B）：`src/host-contract.ts` 的 `visiblePendingKind` 闭合正则改成两代形状通吃（`}\s*}` 非贪婪，不再要求换行），case 字面量认双引号 / 单引号 / 反引号三种，另加一条 **default 泄漏**判据；`tests/host-pending-kinds.node.test.mjs` 从 3 例扩到 6 例，rc.2 树下全绿 |
+
+**两处漂移的发现 → 修复 → 复验**（Issues #50 的逐符号核对只核了 browser 注入面，这两处是**类型面真验才挖出来的**：
+一处落在 `dsh-client-ui-primitives` 的 `Menu`，一处落在宿主产物的压缩形态，都不在那份核对的覆盖面里）：
+
+- **A · `Menu` 锚定座位搬家**。发现：rc.2 树下 `tsc` 报 `WorkspacePicker.tsx(200,9) TS2375`，宿主
+  `ui-primitives` 的 `Menu` 把 portal 模式的锚定从 `getAnchorRect`（owner 量出矩形）换成 `anchorRef`
+  （直接交元素，列表用 CSS anchor positioning 定位）。修复：两个座位**一起穿**——`MenuAnchorThread`
+  把 `{ getAnchorRect, anchorRef }` 打包成一个带类型的对象，`<Menu {...anchorThread} />` 一次 spread。
+  spread 属性**跳过 excess-property 检查**，于是每代各自校验自己认识的那个键、运行期忽略陌生键：
+  只传一个键会在另一代上要么 `TS2375`、要么锚定静默失效。`anchorRef` 的类型写成
+  `RefObject<HTMLElement | null> | undefined`，是为了在 `exactOptionalPropertyTypes: true` 下也诚实。
+- **B · 产物压缩形态把契约守卫打哑**。发现：rc.2 的 `lib/client.js` 压成单行零空白、字符串换反引号，
+  原 `VISIBLE_PENDING_KIND` 正则要求 switch 收尾**必须换行**（`\n\s*}`），整条不匹配 →
+  `host-pending-kinds` 三例真红。注意这**不是语义漂移**：kind 集合两代都是 `approval` / `plan-review` /
+  `question`，红的是解析面。修复：闭合改用 `}\s*}` 非贪婪（switch 的收尾 `}` 后紧跟函数自己的 `}`，两代都成立），
+  case 字面量三种引号都认（`\1` 保证左右配对）；顺带补一条**第四判据 default 泄漏**
+  （`PENDING_KIND_DEFAULT_LEAKS`）：整套"读 case 表"的口径只在 default 丢弃未认出来的 kind 时成立，
+  宿主若改成 `default: return kind;`，逐符号比对会给出一个半真的"一致"，所以必须响。
+  只在 default 自己那一段里判（下一个 `case` 之前），否则 default 排在前面的写法会把 case 分支的
+  `return kind` 误读成漏值。已知边界也写进了注释：非贪婪停在哪儿就吃进多深，宿主把 `case` 写成块体且
+  default 之后还排 kind 时，截到的函数体会缺后半段 —— 少读到的 kind 让集合比对**变红**，不会静默绿。
+- 复验：见下「类型面真验记录（第 2 轮）」，rc.2 树下 `tsc` / `host-pending-kinds`（6 例）/ vitest 全绿；
+  还原线上 `npm run test` 也全绿，两代行为一致。
+
+**决策 (c)：透传 `renderFactorySlot`，但不消费 `contextMenu.button` 工厂**（Issues #50 建议 1 明文允许的路径之一）：
+
+1. 本包的安装形态把宿主 `ui-workspace` **整包 disable**（`cordis.patch.yml` 只有 insert 本包 + `ui-workspace` `disabled: true` 两条）。被禁用 ⇒ 它的 apply effects 根本不执行 ⇒ 该包注册的 `workspace.rename` / `workspace.delete` 与 `session.*` 两组 `contextMenus.register` 贡献**不存在**于宿主的 `registeredKinds`；
+2. rc.2 上共享工厂 `contextMenu.button` 的 definition 由 context-menu 包**恒常登记**，而 `FactoryOutlet` 只在 definition 缺失时才咨询 `options.fallback`；
+3. 两条叠加：若本包消费该工厂，工厂组件对 `{kind: 'workspace'}` 与 `{kind: 'session'}` 一律 `return null`，`options.fallback` 又**救不回来**，分组行与会话行的「…」触发器整体消失。这是**确定性回归**，不是概率性风险；
+4. 即便补齐 kind，共享菜单的内容也是宿主 `contextMenus` 贡献集合，不含本包自带的行内 Menu 与私有槽 `sidebar.workspaces.session.menu.item` 语义（pin / rename / fork / archive / session-id）。
+
+所以本包**收下并透传** `renderFactorySlot`（类型面 + props 四条边，contract 里保留 `SlotFactoryMap['contextMenu.button']` 的结构性镜像声明），行上继续自绘 Menu。行为面两代逐像素一致。看守分两份：`tests/factory-threading.client.spec.tsx`（8 例，运行时：透传到位、工厂一次都没被调用、菜单仍是本地面）与 `tests/factory-threading.node.test.mjs`（4 例，锁已提交产物 `lib/types/`：`PropsRenderFactories` 还在组合里、`contextMenu.button` 仍声明、行组件带 prop 且产物 JS 里 `renderFactorySlot(` 调用只出现在 toast）。
+
+**类型面真验记录**（两轮都用同一套一次性隔离流程，仓库用 `pnpm`；事后完整还原）：
+
+隔离流程（两轮相同）：`package.json` 的 devDependencies 里 26 个 `@deepseek-ai/dsh-*` 临时改 `0.2.2-rc.2`。`@deepseek-ai/cordis`（`~4.1.0`）与 `@deepseek-ai/schemastery`（`~3.19.0`）**不动**：rc.2 线宿主包声明的仍是 cordis `~4.1.0`，没有换代，跟随会引入无关变量。一次 `pnpm install --no-frozen-lockfile` 装全，解析干净（`npm ls` 确认 `dsh-client-ui-workspace` / `-slots` / `-renderer` / `-primitives` 等全部落到 rc.2）。
+
+**第 1 轮（2026-11-12，发现）**：
+
+1. `npm run types` → 非零退出（复跑 `npx tsc -p tsconfig.json` 实测退出码 2），1 条错误，原文：`src/client/WorkspacePicker.tsx(200,9): error TS2375: Type '{ … getAnchorRect: () => DOMRect | null; … }' is not assignable to type 'IntrinsicAttributes & { open: boolean; contextual?: boolean; isExternalTrigger?: … }' … Property 'getAnchorRect' does not exist on type 'IntrinsicAttributes & …'`；
+2. `node --test tests/*.node.test.mjs` → 64 例：57 通过 / 7 红。其中**真红 1 处 = `tests/host-pending-kinds.node.test.mjs` 3 例**，原文：`宿主契约解析失败：VISIBLE_PENDING_KIND 不匹配 —— `visiblePendingKind` 这个名字还在，但它不再是 `function visiblePendingKind(…) { switch (…) { … } }` 这个形状。`（另两条是该守卫自带的反例用例：「这份反例没改成 —— case 的写法变了，先改守卫」「这份反例没改成 —— 宿主的 bundle 形状变了，先改守卫」）；其余 4 条红与 rc.2 无关：`artifacts`「包依赖与 DSH 0.2.2-rc.1 基线一致」与 `version-line`「开发依赖线必须等于宿主线」本来就锁着基线号与宿主 CLI 版本，临时改线必然红；`readme-facts`「版本徽章」是当时的既有红（`0.5.3` 对 `0.5.4`），同文件「用例数」在内层 `node --test` 非零时拿不到 `# tests` 汇总，属级联；
+3. `npx vitest run` → 15 文件 / 199 例全绿（退出码 0），含 `factory-threading.client.spec.tsx` 8 例。
+
+**第 2 轮（同日，A / B 修复后复验）**：
+
+1. `npm run types` → **退出码 0，零输出，全绿**（A 的锚定双穿生效；rc.2 的 `Menu` 类型面下 `exactOptionalPropertyTypes` 也不再报错）；
+2. `node --test tests/*.node.test.mjs` → **66 例：63 通过 / 3 红**，3 红全是必然项：`artifacts`「包依赖与 DSH 0.2.2-rc.1 基线一致」、`version-line`「开发依赖线必须等于宿主线」（这两条守卫锁的就是基线号与宿主 CLI 版本，临时改线必红），以及 `readme-facts`「用例数」——内层 `node --test` 因前两条非零退出而拿不到 `# tests` 汇总，属级联，原文：`AssertionError [ERR_ASSERTION]: node --test 没能给出 # tests 汇总，本条看守失去依据`。**第 1 轮的两处真红全部消失**：`host-pending-kinds` 单跑 **6 例全绿**（含新增的「每种真产物形状都解析出同一个 kind 集合（rc.1 多行双引号 / rc.2 单行反引号）」与「锁定版 bundle 上的反例同样必须失配（样本与真产物不能脱节）」），`readme-facts`「版本徽章」绿；
+3. `npx vitest run` → **15 文件 / 199 例全绿**（退出码 0），与第 1 轮一致；
+4. 还原：`git checkout -- package.json pnpm-lock.yaml && pnpm install --frozen-lockfile`，`git status` 只剩代码 / 文档改动与 `lib/` 产物，且 `lib/` 全部 167 个文件与隔离前**逐字节相同**（真验没有把 rc.2 的产物形态带回来）。附带一笔：`pnpm@12` 会在首次 install 时生成一份未跟踪的 `pnpm-workspace.yaml`（内容是 `minimumReleaseAgeExclude` 列出整批 rc.2 包），它不属于仓库文件，删掉即可；
+5. 还原线上复跑 `npm run test`：node **66** / vitest **199**，`readme-facts` 按第 3 步的数字同步后全绿。
+
+**差异明示**（README 兼容性段同步的就是这三句）：
+
+1. 其它插件经宿主**共享 context-menu 体系**登记的贡献 —— `contextMenus.register` 的动作、`contextMenu.content` 自定义内容、`contextMenu.button` 工厂 occurrence —— **不会出现在本包的分组行与会话行菜单里**；
+2. 经 `sidebar.workspaces.session.menu.item` 槽注册的菜单项在本包的行菜单里**照常出现**（本包渲染的就是这个槽）；
+3. 差异只在 `0.2.2-rc.2` 一代显形（rc.1 没有这个工厂，调用只会拿到 fallback）。**完整迁移到共享菜单体系是后续可选项**：那要先把 pin / rename / fork / archive / session-id 迁成 `contextMenus.register` 贡献、补上被 disable 的官方包留下的 kind 空洞、行上挂 `useContextMenu().getTriggerProps`，再切工厂按钮，届时 null 门与内容源才同时成立。
 
 ## 验证
 

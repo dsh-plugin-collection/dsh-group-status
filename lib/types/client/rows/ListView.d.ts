@@ -5,7 +5,7 @@ import type { WorkspaceBrowserProps } from '../contract/slots.ts';
 import { type ArchivedFilter, type SessionNode } from '../tree.ts';
 import { type RemoteSearchState, type SessionTreeProps } from './browser-shared.ts';
 /** The flat "In one list" body: every session is one draggable top-level row. */
-export declare function FlatList({ list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, open, onSessionRenameRequest, usePanelInfo, setSessionOrder, workspaceReady, animationResetKey, revealSessionId, onSessionRevealed, renderSlot, t, }: Pick<SessionTreeProps, 'useSessionStatus' | 'open' | 'onSessionRenameRequest' | 'renderSlot' | 'usePanelInfo' | 'setSessionOrder' | 'workspaceReady' | 'animationResetKey' | 'revealSessionId' | 'onSessionRevealed' | 'rowState' | 'onLeaveArchivedOnly' | 't'> & {
+export declare function FlatList({ list, sessionIds, rowState, onLeaveArchivedOnly, useSessionStatus, open, onSessionRenameRequest, usePanelInfo, setSessionOrder, workspaceReady, animationResetKey, revealSessionId, onSessionRevealed, renderSlot, renderFactorySlot, t, }: Pick<SessionTreeProps, 'useSessionStatus' | 'open' | 'onSessionRenameRequest' | 'renderSlot' | 'renderFactorySlot' | 'usePanelInfo' | 'setSessionOrder' | 'workspaceReady' | 'animationResetKey' | 'revealSessionId' | 'onSessionRevealed' | 'rowState' | 'onLeaveArchivedOnly' | 't'> & {
     list: SessionListState;
     sessionIds: readonly SessionId[];
 }): import("react").JSX.Element;

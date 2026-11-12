@@ -101,9 +101,12 @@ export function workspaceGroupHalf(e: { clientY: number; currentTarget: HTMLElem
   const rect = e.currentTarget.getBoundingClientRect()
   return e.clientY < rect.top + rect.height / 2 ? 'before' : 'after'
 }
+// rc.2 宿主的透传面把 renderFactorySlot 一并穿给了两个列表体（宿主 WorkspaceBrowser.tsx
+// 的 SessionTreeProps Pick 含它）；本包对齐到透传为止——行不消费任何工厂 occurrence，
+// 菜单继续走本地 Menu + renderSlot 列表（决策与差异记录：docs/upgrading.md 兼容台账）。
 export type SessionTreeProps = Pick<
   WorkspaceBrowserProps,
-  'useSessionStatus' | 'startSession' | 'open'
+  'useSessionStatus' | 'startSession' | 'open' | 'renderFactorySlot'
   | 'insertWorkspaceBefore' | 't' | 'usePanelInfo' | 'useBadgeSettings'
 > & PropsRenderSlots<
   | 'sidebar.workspaces.session.menu.item'

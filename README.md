@@ -6,7 +6,7 @@
 
 **中文** | [English](./README.en.md)
 
-[![version](https://img.shields.io/badge/version-0.5.3-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
+[![version](https://img.shields.io/badge/version-0.5.4-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--rc.2-4D6BFE)](https://github.com/deepseek-ai/deepseek-harness)
 
@@ -143,11 +143,13 @@ dsh plugin --profile web remove dsh-group-status
 | 项 | 值 |
 |---|---|
 | DSH 内核 | `engines.dsh: >=0.2.1-rc.2 <0.2.2-0 \|\| >=0.2.2-alpha.2 <0.2.3-0` |
-| 已验代次 | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1`（门禁、冷启动装配、类型检查与全部用例通过；rc.2 上另做过真 GUI 验收。开发依赖线自 2026-11-11 起是 `0.2.2-rc.1`） |
+| 已验代次 | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1`（门禁、冷启动装配、类型检查与全部用例通过；`0.2.1-rc.2` 上另做过真 GUI 验收。开发依赖线自 2026-11-11 起是 `0.2.2-rc.1`）；`0.2.2-rc.2` 验过**类型面、spec 面与宿主契约守卫**（2026-11-12 一次性隔离验证：类型检查、全部 spec 用例与契约守卫全绿；**门禁、冷启动装配与真 GUI 未在该代次验过**，开发依赖线因此仍停在 `0.2.2-rc.1`） |
 | peer 依赖 | `@deepseek-ai/cordis ~4.1.0`（跟随内核；0.2.1 代内核自带 `~4.0.5`） + 12 个 `@deepseek-ai/dsh-*`（范围 `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`） |
 | 上游基线 | `@deepseek-ai/dsh-client-ui-workspace 0.2.2-rc.1`（源码 vendored 进本仓库 `src/`） |
 
 `rc.4` 的**行为面**相对基线有漂移（空白会话复用、草稿初始化语义），本包的 fork 仍按基线代次走，所以那些改进到不了用户；能跑不等于行为一致，逐条差异与触发条件记在 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md) 的「上游代次跟踪」。
+
+`0.2.2-rc.2` 一代宿主给注入面加了 `renderFactorySlot`，并把宿主自己的分组行与会话行改成渲染共享的 `contextMenu.button` 工厂。本包**沿类型面与 props 把这条注入面对齐，但有意不消费该工厂**：本包的行菜单是自己渲染的（行内 Menu + 自有 `sidebar.workspaces.session.menu.item` 列表槽），从不接入宿主共享 contextMenus 体系。差异因此是：在宿主 rc.2 上，其它插件经共享 context-menu 体系登记的贡献（`contextMenus.register` 动作、`contextMenu.content` 自定义内容、`contextMenu.button` 工厂 occurrence）不会出现在本包的分组行与会话行菜单里；经 `sidebar.workspaces.session.menu.item` 槽注册的菜单项在本包本地菜单**照常出现**。完整迁移到共享菜单体系是后续可选项，逐条核对、决策理由与验证记录见 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md) 的「上游代次跟踪」。
 
 peer 里那 12 条不是元数据：不读 `engines.dsh` 的旧内核只按 peer 范围判兼容，漏声明会让旧代次把本包装进去并整页失败。因果与实测记在 [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md)。
 
@@ -187,7 +189,7 @@ ctx.effect(() => () => unregister?.(), 'my-plugin: group status facet')
 pnpm install
 pnpm build        # tsc 类型检查 + tsdown 打包 → lib/
 pnpm watch        # 监听 src/ 自动重建（仍需重启 dsh web）
-pnpm test         # test:node（node --test，60 用例）+ test:spec（vitest + jsdom，191 用例）
+pnpm test         # test:node（node --test，66 用例）+ test:spec（vitest + jsdom，199 用例）
 pnpm test:spec    # 只跑 spec 套件
 pnpm check-upstream   # 上游代次跟踪（加 --latest 查 npm 已发布的最高版）
 ```

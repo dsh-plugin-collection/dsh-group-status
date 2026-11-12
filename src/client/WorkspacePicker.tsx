@@ -23,6 +23,27 @@ import css from './WorkspacePicker.module.css'
 
 const ADD_WORKSPACE = '::add-workspace'
 
+/**
+ * Anchor plumbing handed to primitives' `<Menu portal>` — carried as ONE typed
+ * object so a single spread satisfies both host generations.
+ *
+ * The primitives `Menu` moved its portal-mode anchor between rc.1 and rc.2:
+ * rc.1 reads `getAnchorRect` (the owner measures the anchor element), rc.2
+ * dropped that prop for `anchorRef` (the element itself; the list positions
+ * with CSS anchor positioning). Passing only one key breaks the other line —
+ * `TS2375` on the rc.2 type line, silent anchoring loss on the rc.2 runtime —
+ * so both keys travel together and a JSX spread carries them: spread attributes
+ * skip excess-property checking, so each generation type-checks the key it
+ * knows and ignores the stranger at runtime. Ledger: `docs/upgrading.md`, the
+ * 0.2.2-rc.2 逐符号核对 table (row: `Menu.getAnchorRect` → `anchorRef`).
+ */
+interface MenuAnchorThread {
+  /** rc.1 seat: measure the owner's anchor button. */
+  getAnchorRect: () => DOMRect | null
+  /** rc.2 seat: the owner's anchor element itself (`| undefined` keeps exactOptionalPropertyTypes honest). */
+  anchorRef: RefObject<HTMLElement | null> | undefined
+}
+
 /** Core flow props: the owner supplies popover control and pick semantics. */
 export interface WorkspacePickFlowProps {
   /** The standard locale seat, forwarded by whichever slot entry hosts the flow. */
@@ -79,6 +100,9 @@ export function WorkspacePickFlow({
     () => anchorRef?.current?.getBoundingClientRect() ?? null,
     [anchorRef],
   )
+  // Both anchor seats in one typed object; the `<Menu>` below spreads it so
+  // rc.1 (`getAnchorRect`) and rc.2 (`anchorRef`) each read their own key.
+  const anchorThread: MenuAnchorThread = { getAnchorRect, anchorRef }
   const [errorOpen, setErrorOpen] = useState(false)
   const [modalError, setModalError] = useState<string | null>(null)
   const [flowOpen, setFlowOpen] = useState(false)
@@ -197,7 +221,7 @@ export function WorkspacePickFlow({
         onClose={onClose}
         side={side}
         portal
-        getAnchorRect={getAnchorRect}
+        {...anchorThread}
       />
       {open && !addIsTheOnlyEntry && !menuIsEmpty && workspaceSnapshot.phase === 'pending' && <div className={css.menuStatus} role="status">{t('picker.loading')}</div>}
       {renderDirectoryFlow(flowOwner)}

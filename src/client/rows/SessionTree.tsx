@@ -39,6 +39,7 @@ export function SessionTree({
   workspaceReady, animationResetKey, usePanelInfo,
   onRenameRequest, onDeleteRequest, onSessionRenameRequest,
   renderSlot,
+  renderFactorySlot,
   insertWorkspaceBefore,
   nestWorkspaces, groupExpansion, setGroupExpanded,
   setSessionOrder, home, t,
@@ -327,6 +328,7 @@ export function SessionTree({
           containsCurrentDescendant={currentAncestors.has(group.key)}
           home={home}
           settings={badgeSettings}
+          renderFactorySlot={renderFactorySlot}
           now={now}
           t={t}
           onToggle={() => {
@@ -398,6 +400,7 @@ export function SessionTree({
               onOpen={open}
               onRenameRequest={onSessionRenameRequest}
               renderSlot={renderSlot}
+              renderFactorySlot={renderFactorySlot}
               onReveal={node.id === revealSessionId && group.key === revealGroup
                 ? () => { onSessionRevealed(node.id) }
                 : undefined}

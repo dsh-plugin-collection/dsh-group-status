@@ -38,7 +38,7 @@
  * session-scoped seat would force a Session binding, which would activate and
  * retain every listed Session.
  */
-import type { HostObservable, InjectFace, PropsHooks, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore, SlotHookFactory } from '@deepseek-ai/dsh-client-ui-slots';
+import type { HostObservable, InjectFace, PropsHooks, PropsLocale, PropsRenderFactories, PropsRenderSlots, PropsRuntime, PropsStore, SlotHookFactory } from '@deepseek-ai/dsh-client-ui-slots';
 import type { SessionSearchResultItem } from '@deepseek-ai/dsh-api-session-controller/client';
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client';
 import type { SessionActivity, WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client';
@@ -96,6 +96,52 @@ export declare const menuOpenStateFactory: SlotHookFactory<'sidebar.workspaces.s
 export interface SessionRowScheduleOwnerProps {
     /** Session this row shows; the occupant addresses its own data by this id. */
     readonly sessionId: SessionId;
+}
+/**
+ * The Workspace header a context-menu gesture addresses — the rc.2 host's
+ * `workspace` target kind (its ui-workspace contract merges this shape into
+ * the context-menu package's target map). Mirrored structurally here to keep
+ * this package's type face self-contained — it never imports
+ * `dsh-client-ui-context-menu`, and it contributes no context-menu target
+ * kind of its own (decision: the compatibility ledger in `docs/upgrading.md`).
+ */
+export interface ContextMenuWorkspaceTarget {
+    readonly workspaceId: WorkspaceId;
+    readonly path: string;
+    readonly displayTitle: string;
+}
+/** The Session row a context-menu gesture addresses — the host's `session` target kind. */
+export interface ContextMenuSessionTarget {
+    readonly sessionId: SessionId;
+    readonly displayTitle: string;
+}
+/** The row target kinds the mirrored context-menu shapes address. */
+export type ContextMenuRowTarget = {
+    readonly kind: 'workspace';
+    readonly value: ContextMenuWorkspaceTarget;
+} | {
+    readonly kind: 'session';
+    readonly value: ContextMenuSessionTarget;
+};
+/**
+ * Owner data for the host's shared `contextMenu.button` ellipsis presentation
+ * — a structural mirror of the rc.2 ui-context-menu factory input (the host
+ * ui-workspace rows call it as `renderFactorySlot('contextMenu.button',
+ * { target, label, className })`). Declared only to keep this package's type
+ * face aligned with the host injection surface; this package renders no
+ * occurrence — its row menus stay the local `Menu` over the `renderSlot`
+ * lists. Reservation for external consumers and a future full migration;
+ * decision and divergence record: the compatibility ledger in
+ * `docs/upgrading.md`, `docs/research/0.2.2-rc.2-renderFactorySlot.md`.
+ */
+export interface ContextMenuButtonProps {
+    /** Object the shared popup will target, captured at the gesture. */
+    readonly target: ContextMenuRowTarget;
+    /** Already-localized accessible label for the button. */
+    readonly label: string;
+    readonly className?: string | undefined;
+    /** Compact toolbar control with a label tooltip; omission keeps the caller-styled row geometry. */
+    readonly size?: 'sm';
 }
 declare module '@deepseek-ai/dsh-client-ui-slots' {
     interface SlotMap {
@@ -192,6 +238,24 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
             kind: 'list';
             scope: 'root';
             owner: SessionRowOwnerProps;
+        };
+    }
+    interface SlotFactoryMap {
+        /**
+         * The host's shared context-menu ellipsis button — the rc.2 host registers
+         * the real Factory from its context-menu package. This package declares
+         * the key and input shape as a structural mirror of that face (same
+         * `declare module` pattern as the Toast factory in `contract/toast.ts`)
+         * and renders **no** occurrence: the fork disables the official
+         * ui-workspace, so the shared menu's row kinds are never contributed, and
+         * the rows keep the local `Menu` + `renderSlot` action lists. Reserved
+         * for external consumers and a future full migration; decision and
+         * divergence record: the compatibility ledger in `docs/upgrading.md`,
+         * `docs/research/0.2.2-rc.2-renderFactorySlot.md`.
+         */
+        'contextMenu.button': {
+            scope: 'root';
+            props: ContextMenuButtonProps;
         };
     }
 }
@@ -447,8 +511,21 @@ export type SessionRenameDialogProps = PropsRuntime<'shell.overlay'> & PropsLoca
 export type SessionArchiveConfirmProps = PropsRuntime<'shell.overlay'> & PropsLocale<'workspace'> & Omit<SessionArchiveConfirmInjected, 'hooks'> & PropsHooks<SessionArchiveConfirmInjected['hooks']>;
 /** Props of the existing overlay's keyed notice dispatcher. */
 export type RowToastProps = PropsRuntime<'shell.overlay'> & PropsRenderSlots<'workspace.toast'> & Pick<RowToastInjected, 'dismissToast'> & PropsHooks<RowToastInjected['hooks']>;
-/** Full browser props: shell owner share + viewing store + injected actions + the locale seat. */
-export type WorkspaceBrowserProps = PropsRuntime<'sidebar.workspaces'> & PropsRenderSlots<'sidebar.workspaces.directoryFlow' | 'sidebar.workspaces.session.menu.item' | 'sidebar.workspaces.session.row.action' | 'sidebar.session.row.leading' | 'sidebar.session.row.hover'> & PropsStore<WorkspaceViewStoreHandle> & Omit<WorkspaceBrowserInjected, 'hooks'> & PropsHooks<WorkspaceBrowserInjected['hooks']> & PropsLocale<'workspace'>;
+/**
+ * Full browser props: shell owner share + Factory rendering capability + slot
+ * seats + viewing store + injected actions + the locale seat.
+ *
+ * `PropsRenderFactories` joins the host's injected face in rc.2 (its contract
+ * composes `PropsRuntime<'sidebar.workspaces'> & PropsRenderFactories &
+ * PropsRenderSlots<…>`), and the rc.1 composed props already threaded the
+ * same `renderFactorySlot` at runtime, so declaring it here type-checks and
+ * runs on both kernel generations. The browser threads the renderer down to
+ * its rows but consumes no Factory occurrence (see the `contextMenu.button`
+ * declaration above): the row menus stay the local `Menu` over the
+ * `renderSlot` lists. Decision and divergence record: the compatibility
+ * ledger in `docs/upgrading.md`, `docs/research/0.2.2-rc.2-renderFactorySlot.md`.
+ */
+export type WorkspaceBrowserProps = PropsRuntime<'sidebar.workspaces'> & PropsRenderFactories & PropsRenderSlots<'sidebar.workspaces.directoryFlow' | 'sidebar.workspaces.session.menu.item' | 'sidebar.workspaces.session.row.action' | 'sidebar.session.row.leading' | 'sidebar.session.row.hover'> & PropsStore<WorkspaceViewStoreHandle> & Omit<WorkspaceBrowserInjected, 'hooks'> & PropsHooks<WorkspaceBrowserInjected['hooks']> & PropsLocale<'workspace'>;
 /**
  * Picker-private injected share. Pick semantics remain in the owner's onPick
  * callback; this callback creates only the real Host Workspace. A type alias

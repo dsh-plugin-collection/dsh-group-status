@@ -253,6 +253,16 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
    *  边界时同一行的徽标与明细会给出相差一分钟的两个答案。缺省仅供直接构造该组件的
    *  测试使用，生产路径由 WorkspaceBrowser 统一传入。 */
   now?: number | undefined
+  /**
+   * Host Factory renderer threaded from the browser root (the rc.2 host
+   * injects it on the browser props; rc.1 threads the same renderer at
+   * runtime). Threaded only — by fork design this row never consumes it: the
+   * official ui-workspace is disabled here, the shared `contextMenu.button`
+   * row kinds are never contributed, and the Workspace menu stays this row's
+   * local surface. Decision and divergence record: the compatibility ledger
+   * in `docs/upgrading.md`, `docs/research/0.2.2-rc.2-renderFactorySlot.md`.
+   */
+  renderFactorySlot: WorkspaceBrowserProps['renderFactorySlot']
   t: RowTranslate
 }) {
   const row = group
@@ -580,6 +590,17 @@ export function SessionNodeItem({
   onOpen: (id: SessionNode['id']) => void
   /** Open the rename dialog from a title double-click (id + current title). */
   onRenameRequest: (id: SessionNode['id'], currentTitle: string) => void
+  /**
+   * Host Factory renderer threaded from the browser root (the rc.2 host
+   * injects it on the browser props; rc.1 threads the same renderer at
+   * runtime). Threaded only — by fork design this row never consumes it: the
+   * "..." menu stays the local `Menu` over the `renderSlot` action lists,
+   * while the shared `contextMenu.button` would swap that whole semantics and
+   * its row kinds are never contributed on this fork. Decision and
+   * divergence record: the compatibility ledger in `docs/upgrading.md`,
+   * `docs/research/0.2.2-rc.2-renderFactorySlot.md`.
+   */
+  renderFactorySlot: WorkspaceBrowserProps['renderFactorySlot']
   /** Scroll this row into view after search navigation, then acknowledge it. */
   onReveal?: (() => void) | undefined
   /** Present on reorderable-list rows so every row can remain a drop target. */
