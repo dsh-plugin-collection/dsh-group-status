@@ -6,6 +6,14 @@
 
 ## 未发布
 
+- **compat** 真 GUI 验收补全（2026-11-12，台账见 `docs/upgrading.md`「真 GUI 验收记录（2026-11-12，内核
+  0.2.2-rc.2 为主、rc.1 对照）」）：`0.2.2-rc.2` 一代把**门禁、冷启动装配与真 GUI** 也验完——隔离实例
+  （`devkit/instance.mjs`，插件实体副本与仓内产物逐字节一致、真实 `~/.dsh` 越界自检交集 0）真跑
+  `sleep` 回合，徽标三源「进行中 / 已完成 / 待审批」、悬停明细、徽标撤下、picker 菜单锚定（PR #51
+  修复 A 的运行时面）、本地 kebab 菜单（决策 (c) 的保护面）、搜索 / 扁平列表 / 设置卡片全过；
+  rc.1 做对照回归同过。证据（real-gui 截图 + 逐图 README）在 `devkit/results/screens/`，不在本仓库内。
+  中英 README 的已验代次口径同步升级；定时任务、归档过滤与多账号排序仍未点验（spec 看守面），
+  开发依赖线维持 `0.2.2-rc.1` 的原因改为纯发布事实（rc.2 的 npm `latest` 未切换）。
 - **fix** 对齐宿主 `0.2.2-rc.2` 的 `renderFactorySlot` 注入面（Issues #50 建议 1）：宿主 rc.2 把
   `PropsRenderFactories` 合成进 `WorkspaceBrowserProps`，`renderFactorySlot` 从此是槽位组件 props 的
   **必填项**（研究台账核过：rc.1 的类型面与运行时其实也已经在注入，只是宿主自家契约没声明、行组件没消费），
