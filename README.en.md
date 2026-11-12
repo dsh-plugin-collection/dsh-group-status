@@ -6,7 +6,7 @@
 
 [中文](./README.md) | **English**
 
-[![version](https://img.shields.io/badge/version-0.5.3-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
+[![version](https://img.shields.io/badge/version-0.5.4-0EA5E9)](https://github.com/dsh-plugin-collection/dsh-group-status)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![DSH](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--rc.2-4D6BFE)](https://github.com/deepseek-ai/deepseek-harness)
 
@@ -141,11 +141,13 @@ The plugin works normally with neither installed. The waiting-review data comes 
 | Item | Value |
 |---|---|
 | DSH kernel | `engines.dsh: >=0.2.1-rc.2 <0.2.2-0 \|\| >=0.2.2-alpha.2 <0.2.3-0` |
-| Verified generations | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1` (gating, cold boot assembly, type check and the full suite pass on all; real GUI acceptance was additionally done on rc.2. The development dependency line has been `0.2.2-rc.1` since 2026-11-11) |
+| Verified generations | `0.2.1-rc.2` / `rc.3` / `rc.4` / `0.2.2-rc.1` (gating, cold boot assembly, type check and the full suite pass on all; real GUI acceptance was additionally done on `0.2.1-rc.2`. The development dependency line has been `0.2.2-rc.1` since 2026-11-11). On `0.2.2-rc.2` the **type surface, the spec surface and the host contract guard** were verified (one-off isolated run on 2026-11-12: type check, the whole spec suite and the contract guard all green). **Gating, cold boot assembly and real GUI were not tested on that generation**, so the development dependency line stays at `0.2.2-rc.1` |
 | Peer dependencies | `@deepseek-ai/cordis ~4.1.0` (follows the kernel; a 0.2.1 generation kernel ships `~4.0.5`) plus 12 `@deepseek-ai/dsh-*` packages (range `^0.2.1-rc.2 \|\| ^0.2.2-rc.1`) |
 | Upstream baseline | `@deepseek-ai/dsh-client-ui-workspace 0.2.2-rc.1`, source taken from the published package into this repo's `src/` |
 
 On `rc.4` the **behavior** has drifted from the baseline (blank session reuse and draft initialization semantics). This package's fork still follows the baseline generation, so those improvements do not reach users: loading cleanly is not the same as behaving identically. The per-item differences and the triggers to act on them live in [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md), section "上游代次跟踪".
+
+On `0.2.2-rc.2` the Host added `renderFactorySlot` to the injected face and switched its own group row and session row to render the shared `contextMenu.button` factory. This package **aligns that injected face through its types and props, but deliberately does not consume the factory**: its row menu is self-drawn (an in-row Menu plus its own `sidebar.workspaces.session.menu.item` list slot) and never joins the Host's shared contextMenus system. The resulting difference: on Host rc.2, contributions that other plugins register through the shared context-menu system (`contextMenus.register` actions, `contextMenu.content` custom content, `contextMenu.button` factory occurrences) **do not appear** in this package's group rows or session rows, while menu items registered into `sidebar.workspaces.session.menu.item` **still appear** in this package's local menu (this package renders that very slot). Migrating fully to the shared menu system is an optional later step. The per-symbol review, the decision rationale, and the verification record live in the same section of [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md).
 
 The 12 peer entries are not metadata. Kernels that do not read `engines.dsh` decide compatibility from the peer ranges alone, and a missing entry lets an old kernel load this package and fail the whole page. The mechanism is recorded in [docs/upgrading.md](https://github.com/dsh-plugin-collection/dsh-group-status/blob/main/docs/upgrading.md), section "兼容声明为什么长这样".
 
@@ -185,7 +187,7 @@ The full contract, every `FacetFold` field, the default merge, lifecycle and deg
 pnpm install
 pnpm build        # tsc type check + tsdown bundle → lib/
 pnpm watch        # rebuild on src/ changes (a dsh web restart is still required)
-pnpm test         # test:node (node --test, 60 cases) + test:spec (vitest + jsdom, 191 cases)
+pnpm test         # test:node (node --test, 66 cases) + test:spec (vitest + jsdom, 199 cases)
 pnpm test:spec    # spec suite only
 pnpm check-upstream   # upstream generation tracking (add --latest for the highest published version)
 ```

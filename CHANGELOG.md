@@ -6,6 +6,50 @@
 
 ## 未发布
 
+- **fix** 对齐宿主 `0.2.2-rc.2` 的 `renderFactorySlot` 注入面（Issues #50 建议 1）：宿主 rc.2 把
+  `PropsRenderFactories` 合成进 `WorkspaceBrowserProps`，`renderFactorySlot` 从此是槽位组件 props 的
+  **必填项**（研究台账核过：rc.1 的类型面与运行时其实也已经在注入，只是宿主自家契约没声明、行组件没消费），
+  并沿 `WorkspaceBrowser` → `SessionTree` / `FlatList`(`ListView`) → `ProjectRowItem` / `SessionNodeItem`
+  四条边穿到行。本包跟着把这条链补齐：`contract/slots.ts` 的 props 组合加 `PropsRenderFactories` 并结构性镜像
+  声明 `'contextMenu.button'` 工厂，四条透传边逐个对齐（`SearchResults` 与 hover 卡两代都不穿工厂，本包同构不穿）。
+  **为什么要现在对**：不然是拿本包的 props 形状去替宿主做声明，上游 rebase 时会把这处对齐静默冲掉。
+- **fix** 跟住 rc.2 真验挖出的**两处类型面 / 解析面漂移**（Issues #50。这两处不在建议 1 的逐符号核对覆盖面里：
+  那份核对核的是 `WorkspaceBrowser` 注入面，而下面 A 落在 `dsh-client-ui-primitives` 的 `Menu`、B 落在宿主
+  **产物的压缩形态**上 —— 只有把 26 个 devDependencies 真升到 `0.2.2-rc.2` 跑一遍才看得见）：
+  - **A · `Menu` 锚定双穿**：宿主 rc.2 的 `Menu` 删掉 `getAnchorRect`（owner 量矩形）换成 `anchorRef`
+    （直接交元素，列表用 CSS anchor positioning 定位），本包 vendored 的 `WorkspacePicker.tsx` 因此
+    `TS2375`。修法不是二选一：**只传一个键，另一代要么编译红、要么运行期锚定静默失效**。改成把
+    `{ getAnchorRect, anchorRef }` 打包成一个带类型的对象再一次 spread 穿过去（spread 不做 excess-property
+    检查，每代各读自己认识的键、忽略陌生键），两代通吃且锚定行为不变。
+  - **B · 宿主契约守卫认两代产物形状**：rc.2 的 `lib/client.js` 压成单行零空白、字符串换反引号，
+    `host-contract.ts` 里抠 `visiblePendingKind` 的正则要求 switch 收尾**必须换行**，整条不匹配 →
+    `tests/host-pending-kinds.node.test.mjs` 三例真红。**kind 集合本身没变**（仍是 `approval` /
+    `plan-review` / `question`），红的是解析面：守卫读不到宿主实现就等于「没人在看」。闭合改用 `}\s*}`
+    非贪婪（两代都成立），case 字面量双引号 / 单引号 / 反引号三种都认；并补一条**第四判据 default 泄漏**
+    （`default: return kind;` 会让「case 表就是宿主可见集合」这条口径当场失效，给出半真的"一致"，所以必须响；
+    只在 default 自己那一段里判，避免把 case 分支的 `return kind` 误读成漏值）。该守卫 3 例 → 6 例，
+    新增两例分别钉「两代真产物形状解析出同一集合」与「锁定 bundle 上的反例照样失配」。
+- **compat** 决策 (c)：**透传但不消费** `contextMenu.button` 工厂，差异记入兼容台账（Issues #50）。
+  理由不是"还没做"，是消费它**必然回归**：本包的安装形态用 `cordis.patch.yml` 把官方 `ui-workspace`
+  **整包 disable**，该包里 `workspace` / `session` 两个 kind 的 `contextMenus.register` 贡献随之不注册；
+  而 rc.2 上工厂 definition 恒在，`FactoryOutlet` 只在 definition 缺失时才咨询 `options.fallback`
+  （组件自己 `return null` 兜不住），于是行上那个「…」触发器会渲染成 null。共享菜单的内容也不含本包
+  自带的行内 Menu 与私有槽 `sidebar.workspaces.session.menu.item` 语义。**用户可见差异**：在 rc.2 宿主上，
+  其它插件经共享 context-menu 体系登记的贡献不出现在本包的分组行与会话行菜单；经
+  `sidebar.workspaces.session.menu.item` 注册的条目照常出现；完整迁移共享菜单体系是后续可选项。
+  行为面两代逐像素不变，看守落在新增的 `tests/factory-threading.client.spec.tsx`（8 例，运行时：透传到位、
+  工厂零调用、菜单仍是本地面）与 `tests/factory-threading.node.test.mjs`（4 例，锁已提交产物 `lib/types/`
+  的声明面，防上游 rebase 把透传静默抹掉）。
+- **compat** 兼容台账加 `0.2.2-rc.2` 一代（Issues #50 建议 2）：`docs/upgrading.md`「上游代次跟踪」新增该代次的
+  逐符号核对（注入面扩 `PropsRenderFactories`、宿主行改渲共享工厂、被删的 `openWorkspaceMenu` /
+  `openSessionMenu` 在本包零命中、`DraftInitializationOptions` 两代逐字节相同）与一次性隔离的类型面真验记录
+  （两轮：第 1 轮发现 A / B，第 2 轮修复后复验）。第 2 轮的结果：`npm run types` 全绿、`node --test` 66 例中
+  除两条「锁基线号 / 锁宿主线」的必然红与一条级联外全绿（含 `host-pending-kinds` 6 例全绿）、
+  `npx vitest run` 15 文件 199 例全绿，且还原后 `lib/` 与隔离前逐字节相同。**已验面因此是「类型面 + spec 面 +
+  契约守卫」**；**门禁 / 冷启动装配 / 真 GUI 未在该代次验过**，开发依赖线也仍停在 `0.2.2-rc.1` —— 中英 README
+  兼容性表按这个口径写，没验的面不写成已验。顺带修 release 遗留：版本徽章 `0.5.3` → `0.5.4`，
+  Node / spec 用例数按实跑改为 66 / 199。
+
 ## 0.5.4 — 2026-11-11
 
 - **chore** 开发依赖线升到 `0.2.2-rc.1`（26 个 `@deepseek-ai/dsh-*`）：`0.2.2-rc.1` 早已是 npm `latest`，
