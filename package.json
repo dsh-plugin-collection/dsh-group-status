@@ -1,6 +1,6 @@
 {
   "name": "dsh-group-status",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "DSH 侧栏折叠分组的聚合状态徽标：分组收起时在文件夹行显示组内会话的待审批、进行中与已完成状态，并合并其他插件注册的状态源，带计数与悬停明细。",
   "keywords": [
     "dsh",
