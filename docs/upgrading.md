@@ -185,8 +185,10 @@ Issues #45，2026-11-06 定稿）：12 条 peer 的 `^0.2.1-rc.2` 按预发布�
 `devkit/results/screens/`，不在本仓库内。
 
 **`0.2.2-rc.2` 是验过类型面、spec 面与契约守卫的一代**（2026-11-12 一次性隔离跑，见下节）：`tsc` 对该代次
-真实的 `.d.ts` 全绿、`vitest` 全套全绿、宿主契约守卫 `host-pending-kinds` 全绿。**门禁 / 冷启动装配 / 真 GUI
-都没有做**，开发依赖线因此仍停在 `0.2.2-rc.1`。写台账要把这两件事分开：**验过什么面**与**没验什么面**。
+真实的 `.d.ts` 全绿、`vitest` 全套全绿、宿主契约守卫 `host-pending-kinds` 全绿。同日再用隔离实例把
+**门禁 / 冷启动装配 / 真 GUI** 也补验完（见文末「真 GUI 验收记录（2026-11-12）」），开发依赖线仍停在
+`0.2.2-rc.1`，原因只剩发布事实：rc.2 的 npm `latest` 尚未切换（`dist-tags.next`）。写台账要把这两件事分开：
+**验过什么面**与**没验什么面**。
 
 **0.2.2-rc.1 的契约面复核**（2026-11-11，逐文件 diff 两份发布包的 `lib/types`）：
 
@@ -379,6 +381,36 @@ dsh plugin --profile web remove dsh-group-status
    并且先确认 `<pid>` 是那棵树里的 `node .../bin/dsh`。
 4. **杀进程别用 `pgrep ... | xargs kill`**：匹配到自己的 shell 时会把整个命令带崩，
    表现为「服务没起来、日志文件不存在」——很容易被当成插件问题。
+
+## 真 GUI 验收记录（2026-11-12，内核 0.2.2-rc.2 为主、rc.1 对照）
+
+PR #51（Issues #50 的 renderFactorySlot 对齐 + 两处 rc.2 真漂移修复）合并进 `main`（`b610ed2`）后，
+按跨内核验收口径补了这轮真 GUI。环境**隔离**：`devkit/instance.mjs` 实例（临时 `DSH_HOME`、插件走
+实体副本且 `lib/client.js` 与仓内 md5 逐字节一致、`@deepseek-ai` 整目录软链到被测版本树、凭据软链），
+全程冷启动；实例 profile 补了与 web profile 同款 `llm-pi-ai` provider 块（默认模型 qoder-route/qfmodel），
+否则会撞 deepseek 侧额度耗尽（`Request quota exhausted` 是**环境**，不是插件——首轮就把它误读过一次，
+判据必须先证「状态源真的处于该状态」再断言徽标）。真实 `~/.dsh` 越界自检：实例 9 个会话 id 与真实
+1082 个会话目录**交集 0**。
+
+| 面 | rc.2 | 判据（real-gui 截图在 `devkit/results/screens/2026-11-12-group-status-gui/`，含逐图 README） |
+|---|---|---|
+| 门禁 | ✅ | `instance.mjs check` 两代「本运行时: 通过 \| 参照 0.2.1+: 通过」；`devkit/verify.mjs` 期望表 rc.1/rc.2 均绿（gate/host/client 三面） |
+| 冷启动装配 | ✅ | 宿主日志 `[dsh-group-status] apply called; artifact mtime=…`（横幅自证）；client 解析/inject pending 0 次 |
+| 徽标·进行中 | ✅ | Bash `sleep` 真跑期间收起分组行 `aria-label="1 Running"` + 环形转圈（`rc2-running-badge.png`）；rc.1 对照 2.5s 内出徽标（`rc1-running-badge.png`） |
+| 徽标·已完成 | ✅ | 完成且未读：收起分组行绿点 + 悬停明细「● 1 Completed」与徽标同帧一致（`rc2-completed-tooltip.png`） |
+| 徽标·待审批 | ✅ | 越权写触发宿主 `Allow once` 交互挂起时，收起分组行 `aria-label="1 Waiting for approval"`（`rc2-approval-badge.png`）；批准后会话恢复、徽标撤下 |
+| 徽标撤下 | ✅ | 已读 + 空闲后徽标消失（观察于 running→完成→已读全过程） |
+| picker 菜单锚定（修复 A 运行时面） | ✅ | hero workspace picker 菜单 trigger (x=473, bottom=435) → menu (x=473, y=439)，4px 下挂（`rc2-picker-menu-anchored.png`）；rc.1 的 `getAnchorRect` 座位同锚定（`rc1-picker-menu-anchored.png`） |
+| 本地 kebab 语义（决策 (c) 保护面） | ✅ | 会话行「…」出 Pin/Rename/Fork/Archive/Copy Session ID 五条（`rc2-session-kebab.png`）；分组行「…」出 Rename/Delete（`rc2-group-kebab.png`），删除二次确认走通 |
+| 视图菜单 / 扁平列表 / 搜索 | ✅ | Group by/Order by/Filter 全渲染；「In one list」4 行扁平（`rc2-flat-list.png`）；搜索命中带分组名、无匹配「No matching sessions」（`rc2-search-miss.png`） |
+| 设置卡片 | ✅ | Plugins 面板出现本包卡片与中文描述，展开含徽标/悬停设置字段（`rc2-settings-card*.png`）——2026-11-11 那轮的「未判定」本轮判定通过 |
+
+**未判定面（如实）**：定时任务聚合、归档过滤、多账号排序本轮未点验（spec 看守面覆盖）；
+rc.2 上其它插件经共享 context-menu 体系注册的贡献不出现在本包行菜单——这是决策 (c) 的**声明差异**，
+不是缺陷（见上文逐符号核对与差异明示）。
+
+**环境噪音记录**：rc.1 控制台 1 条 404（`/open-in-app/icon/filemanager`，宿主端点探针，非本插件路由）；
+rc.1 devkit 实例 profile 缺 `agent-default-model` 行（生成物差异），模型需手选。
 
 ## 已知限制
 
